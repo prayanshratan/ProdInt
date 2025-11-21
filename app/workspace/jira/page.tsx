@@ -230,15 +230,15 @@ export default function JiraAgentPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-4xl font-bold mb-2">Jira Agent</h1>
-          <p className="text-muted-foreground text-lg">
+        <div className="space-y-2">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Jira Agent</h1>
+          <p className="text-muted-foreground text-xl">
             Generate user stories with acceptance criteria
           </p>
         </div>
-        <Button onClick={() => setShowNewChatDialog(true)} size="lg">
+        <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm">
           <Plus className="h-5 w-5 mr-2" />
           New User Story
         </Button>
@@ -246,21 +246,26 @@ export default function JiraAgentPage() {
 
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Chat List */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-lg">Your User Stories</CardTitle>
+        <Card className="lg:col-span-1 border-0 shadow-enterprise bg-white">
+          <CardHeader className="border-b">
+            <CardTitle className="text-lg font-semibold">Your User Stories</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 pt-4">
             {chats.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No user stories yet</p>
+              <div className="text-center py-8 space-y-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 mx-auto">
+                  <Users className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground">No user stories yet</p>
+              </div>
             ) : (
               chats.map((chat) => (
                 <div
                   key={chat.id}
-                  className={`relative group rounded-lg border transition-colors ${
+                  className={`relative group rounded-xl transition-all-smooth ${
                     currentChat?.id === chat.id
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'hover:bg-accent'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'hover:bg-gray-50 border border-gray-100'
                   }`}
                 >
                   <button
@@ -277,10 +282,10 @@ export default function JiraAgentPage() {
                       e.stopPropagation()
                       confirmDeleteChat(chat.id)
                     }}
-                    className="absolute right-2 top-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive hover:text-destructive-foreground rounded"
+                    className="absolute right-2 top-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive hover:text-white rounded-lg"
                     title="Delete User Story"
                   >
-                    <Trash2 className="h-4 w-4" />
+                    <Trash2 className="h-3.5 w-3.5" />
                   </button>
                 </div>
               ))
@@ -289,26 +294,26 @@ export default function JiraAgentPage() {
         </Card>
 
         {/* Chat Area */}
-        <Card className="lg:col-span-3">
+        <Card className="lg:col-span-3 border-0 shadow-enterprise bg-white">
           {currentChat ? (
             <>
-              <CardHeader className="border-b">
+              <CardHeader className="border-b bg-gray-50/50">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle>{currentChat.title}</CardTitle>
-                    <CardDescription>
+                  <div className="space-y-1">
+                    <CardTitle className="text-xl">{currentChat.title}</CardTitle>
+                    <CardDescription className="text-sm">
                       {currentChat.messages.length} messages
                     </CardDescription>
                   </div>
                   {currentChat.messages.length > 0 && (
                     <div className="flex gap-2">
-                      <Button onClick={() => downloadUserStories('md')} variant="outline" size="sm">
+                      <Button onClick={() => downloadUserStories('md')} variant="outline" size="sm" className="shadow-sm">
                         <Download className="h-4 w-4 mr-2" />
-                        Download MD
+                        MD
                       </Button>
-                      <Button onClick={() => downloadUserStories('docx')} variant="outline" size="sm">
+                      <Button onClick={() => downloadUserStories('docx')} variant="outline" size="sm" className="shadow-sm">
                         <Download className="h-4 w-4 mr-2" />
-                        Download DOCX
+                        DOCX
                       </Button>
                     </div>
                   )}
@@ -317,27 +322,29 @@ export default function JiraAgentPage() {
               <CardContent className="p-0">
                 <div className="h-[600px] flex flex-col">
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/30">
                     {currentChat.messages.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-12">
-                        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>Start the conversation to generate user stories</p>
+                      <div className="text-center text-muted-foreground py-16 space-y-4">
+                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mx-auto">
+                          <Users className="h-8 w-8 text-primary" />
+                        </div>
+                        <p className="text-lg">Start the conversation to generate user stories</p>
                       </div>
                     ) : (
                       currentChat.messages.map((msg: any, idx: number) => (
                         <div
                           key={idx}
-                          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
                         >
                           <div
-                            className={`max-w-[80%] rounded-lg p-4 ${
+                            className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
                               msg.role === 'user'
-                                ? 'bg-primary text-primary-foreground'
-                                : 'bg-muted'
+                                ? 'bg-primary text-white'
+                                : 'bg-white border'
                             }`}
                           >
-                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                            <p className="text-xs opacity-70 mt-2">
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                            <p className="text-xs opacity-60 mt-2">
                               {new Date(msg.timestamp).toLocaleTimeString()}
                             </p>
                           </div>
@@ -345,9 +352,9 @@ export default function JiraAgentPage() {
                       ))
                     )}
                     {generating && (
-                      <div className="flex justify-start">
-                        <div className="bg-muted rounded-lg p-4">
-                          <Loader2 className="h-5 w-5 animate-spin" />
+                      <div className="flex justify-start animate-fade-in">
+                        <div className="bg-white border rounded-2xl p-4 shadow-sm">
+                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
                         </div>
                       </div>
                     )}
@@ -355,21 +362,22 @@ export default function JiraAgentPage() {
                   </div>
 
                   {/* Input */}
-                  <div className="border-t p-4">
+                  <div className="border-t bg-white p-4">
                     <form
                       onSubmit={(e) => {
                         e.preventDefault()
                         sendMessage()
                       }}
-                      className="flex gap-2"
+                      className="flex gap-3"
                     >
                       <Input
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         placeholder="Ask for changes or provide more context..."
                         disabled={generating}
+                        className="h-11 shadow-sm"
                       />
-                      <Button type="submit" disabled={generating || !message.trim()}>
+                      <Button type="submit" disabled={generating || !message.trim()} className="h-11 px-6 shadow-sm">
                         <Send className="h-4 w-4" />
                       </Button>
                     </form>
@@ -378,13 +386,17 @@ export default function JiraAgentPage() {
               </CardContent>
             </>
           ) : (
-            <CardContent className="p-12 text-center">
-              <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
-              <h3 className="text-xl font-semibold mb-2">No user story selected</h3>
-              <p className="text-muted-foreground mb-6">
-                Create a new user story or select an existing one to continue
-              </p>
-              <Button onClick={() => setShowNewChatDialog(true)}>
+            <CardContent className="p-16 text-center space-y-6">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-50 mx-auto">
+                <Users className="h-10 w-10 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-semibold">No user story selected</h3>
+                <p className="text-muted-foreground text-lg max-w-sm mx-auto">
+                  Create a new user story or select an existing one to continue
+                </p>
+              </div>
+              <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm mt-4">
                 <Plus className="h-4 w-4 mr-2" />
                 Create New User Story
               </Button>

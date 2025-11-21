@@ -30,10 +30,10 @@ export default function WorkspacePage() {
   }, [])
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground text-lg">
+    <div className="space-y-10">
+      <div className="space-y-3">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground text-xl">
           Welcome back! Choose what you&apos;d like to work on today.
         </p>
       </div>
@@ -41,98 +41,130 @@ export default function WorkspacePage() {
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card 
-          className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary"
+          className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-white overflow-hidden"
           onClick={() => router.push('/workspace/prd')}
         >
-          <CardHeader>
+          <CardHeader className="space-y-6 pb-8">
             <div className="flex items-center justify-between">
-              <FileText className="h-12 w-12 text-primary" />
-              <ArrowRight className="h-6 w-6 text-muted-foreground" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                <FileText className="h-7 w-7" />
+              </div>
+              <ArrowRight className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 transition-transform" />
             </div>
-            <CardTitle className="text-2xl mt-4">Create PRD</CardTitle>
-            <CardDescription className="text-base">
-              Generate comprehensive Product Requirements Documents with AI assistance
-            </CardDescription>
+            <div className="space-y-2">
+              <CardTitle className="text-2xl">Create PRD</CardTitle>
+              <CardDescription className="text-base leading-relaxed">
+                Generate comprehensive Product Requirements Documents with AI assistance
+              </CardDescription>
+            </div>
           </CardHeader>
         </Card>
 
         <Card 
-          className="cursor-pointer hover:shadow-lg transition-shadow border-2 hover:border-primary"
+          className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-white overflow-hidden"
           onClick={() => router.push('/workspace/jira')}
         >
-          <CardHeader>
+          <CardHeader className="space-y-6 pb-8">
             <div className="flex items-center justify-between">
-              <Users className="h-12 w-12 text-primary" />
-              <ArrowRight className="h-6 w-6 text-muted-foreground" />
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                <Users className="h-7 w-7" />
+              </div>
+              <ArrowRight className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 transition-transform" />
             </div>
-            <CardTitle className="text-2xl mt-4">Generate User Stories</CardTitle>
-            <CardDescription className="text-base">
-              Create Jira-ready user stories with acceptance criteria
-            </CardDescription>
+            <div className="space-y-2">
+              <CardTitle className="text-2xl">Generate User Stories</CardTitle>
+              <CardDescription className="text-base leading-relaxed">
+                Create Jira-ready user stories with acceptance criteria
+              </CardDescription>
+            </div>
           </CardHeader>
         </Card>
       </div>
 
       {/* Templates Section */}
-      <Card>
+      <Card className="border-0 shadow-enterprise bg-white">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-xl">PRD Templates</CardTitle>
-              <CardDescription>
+            <div className="space-y-2">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <FolderOpen className="h-5 w-5 text-primary" />
+                PRD Templates
+              </CardTitle>
+              <CardDescription className="text-base">
                 Manage your custom templates and set defaults
               </CardDescription>
             </div>
-            <Button onClick={() => router.push('/workspace/templates')}>
-              <FolderOpen className="h-4 w-4 mr-2" />
+            <Button 
+              onClick={() => router.push('/workspace/templates')}
+              className="shadow-sm"
+            >
               View All
+              <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
         </CardHeader>
       </Card>
 
       {/* Recent Activity */}
-      <Card>
+      <Card className="border-0 shadow-enterprise bg-white">
         <CardHeader>
-          <CardTitle className="text-xl flex items-center">
-            <Clock className="h-5 w-5 mr-2" />
-            Recent Activity
-          </CardTitle>
-          <CardDescription>
-            Your recent PRDs and user stories
-          </CardDescription>
+          <div className="space-y-2">
+            <CardTitle className="text-xl flex items-center gap-2">
+              <Clock className="h-5 w-5 text-primary" />
+              Recent Activity
+            </CardTitle>
+            <CardDescription className="text-base">
+              Your recent PRDs and user stories
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <p className="text-muted-foreground">Loading...</p>
+            <div className="flex items-center justify-center py-12">
+              <div className="text-center space-y-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 mx-auto animate-pulse">
+                  <Clock className="h-6 w-6 text-primary" />
+                </div>
+                <p className="text-muted-foreground">Loading activity...</p>
+              </div>
+            </div>
           ) : chats.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground mb-4">
-                No activity yet. Start by creating your first PRD or user story!
-              </p>
-              <div className="flex items-center justify-center gap-4">
-                <Button onClick={() => router.push('/workspace/prd')}>
+            <div className="text-center py-12 space-y-6">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50 mx-auto">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <div className="space-y-2">
+                <p className="text-muted-foreground text-lg">
+                  No activity yet. Start by creating your first PRD or user story!
+                </p>
+              </div>
+              <div className="flex items-center justify-center gap-4 pt-2">
+                <Button onClick={() => router.push('/workspace/prd')} className="shadow-sm">
+                  <FileText className="h-4 w-4 mr-2" />
                   Create PRD
                 </Button>
-                <Button variant="outline" onClick={() => router.push('/workspace/jira')}>
+                <Button variant="outline" onClick={() => router.push('/workspace/jira')} className="shadow-sm">
+                  <Users className="h-4 w-4 mr-2" />
                   Generate User Stories
                 </Button>
               </div>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {chats.map((chat) => (
                 <div
                   key={chat.id}
-                  className="flex items-center justify-between p-4 rounded-lg border hover:bg-accent cursor-pointer transition-colors"
+                  className="group flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-primary/20 hover:bg-gray-50 cursor-pointer transition-all-smooth"
                   onClick={() => router.push(`/workspace/${chat.type}/${chat.id}`)}
                 >
                   <div className="flex items-center space-x-4">
-                    {chat.type === 'prd' ? (
-                      <FileText className="h-5 w-5 text-primary" />
-                    ) : (
-                      <Users className="h-5 w-5 text-primary" />
-                    )}
+                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      {chat.type === 'prd' ? (
+                        <FileText className="h-5 w-5" />
+                      ) : (
+                        <Users className="h-5 w-5" />
+                      )}
+                    </div>
                     <div>
                       <p className="font-medium">{chat.title}</p>
                       <p className="text-sm text-muted-foreground">
@@ -140,7 +172,7 @@ export default function WorkspacePage() {
                       </p>
                     </div>
                   </div>
-                  <ArrowRight className="h-5 w-5 text-muted-foreground" />
+                  <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>
               ))}
             </div>

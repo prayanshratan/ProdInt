@@ -182,9 +182,28 @@
     animation: scale-in 0.3s ease-out;
   }
   
+  /* Typing indicator animation */
+  @keyframes bounce {
+    0%, 60%, 100% {
+      transform: translateY(0);
+    }
+    30% {
+      transform: translateY(-10px);
+    }
+  }
+  
   /* Hover effects */
   .hover-lift {
     @apply transition-all-smooth hover:shadow-enterprise-lg hover:-translate-y-1;
+  }
+  
+  /* Chat message styling */
+  .prose {
+    @apply text-foreground;
+  }
+  
+  .prose p {
+    @apply leading-relaxed;
   }
 }
 

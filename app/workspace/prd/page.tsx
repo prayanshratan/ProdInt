@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { FileText, Send, Download, Loader2, Plus, Upload, Trash2 } from 'lucide-react'
+import { FileText, Send, Download, Loader2, Plus, Upload, Trash2, Copy, Check, User, Sparkles } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { FileUpload } from '@/components/FileUpload'
@@ -35,6 +35,18 @@ export default function PRDAgentPage() {
   })
   
   const [message, setMessage] = useState('')
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+
+  const copyToClipboard = async (text: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(text)
+      setCopiedIndex(index)
+      setTimeout(() => setCopiedIndex(null), 2000)
+      toast({ title: 'Copied to clipboard' })
+    } catch (error) {
+      toast({ title: 'Failed to copy', variant: 'destructive' })
+    }
+  }
 
   useEffect(() => {
     fetchChats()
@@ -332,65 +344,137 @@ export default function PRDAgentPage() {
               <CardContent className="p-0">
                 <div className="h-[600px] flex flex-col">
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/30">
+                  <div className="flex-1 overflow-y-auto bg-white">
                     {currentChat.messages.length === 0 ? (
-                      <div className="text-center text-muted-foreground py-16 space-y-4">
-                        <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 mx-auto">
-                          <FileText className="h-8 w-8 text-primary" />
-                        </div>
-                        <p className="text-lg">Start the conversation to generate your PRD</p>
-                      </div>
-                    ) : (
-                      currentChat.messages.map((msg: any, idx: number) => (
-                        <div
-                          key={idx}
-                          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}
-                        >
-                          <div
-                            className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
-                              msg.role === 'user'
-                                ? 'bg-primary text-white'
-                                : 'bg-white border'
-                            }`}
-                          >
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                            <p className="text-xs opacity-60 mt-2">
-                              {new Date(msg.timestamp).toLocaleTimeString()}
-                            </p>
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center text-muted-foreground space-y-4 max-w-md px-4">
+                          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-purple-500/10 mx-auto">
+                            <FileText className="h-8 w-8 text-primary" />
+                          </div>
+                          <div className="space-y-2">
+                            <p className="text-lg font-medium text-foreground">Start the conversation</p>
+                            <p className="text-sm">Ask me to generate your PRD or provide context about what you'd like to build.</p>
                           </div>
                         </div>
-                      ))
-                    )}
-                    {generating && (
-                      <div className="flex justify-start animate-fade-in">
-                        <div className="bg-white border rounded-2xl p-4 shadow-sm">
-                          <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                        </div>
+                      </div>
+                    ) : (
+                      <div className="max-w-3xl mx-auto py-8 px-4">
+                        {currentChat.messages.map((msg: any, idx: number) => (
+                          <div
+                            key={idx}
+                            className={`group flex gap-4 mb-8 animate-fade-in ${
+                              msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                            }`}
+                          >
+                            {/* Avatar */}
+                            <div className="flex-shrink-0">
+                              <div
+                                className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                                  msg.role === 'user'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'bg-gradient-to-br from-primary to-purple-600 text-white'
+                                }`}
+                              >
+                                {msg.role === 'user' ? (
+                                  <User className="h-4 w-4" />
+                                ) : (
+                                  <Sparkles className="h-4 w-4" />
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Message Content */}
+                            <div className={`flex-1 space-y-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold">
+                                  {msg.role === 'user' ? 'You' : 'ProdInt AI'}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </span>
+                              </div>
+                              
+                              <div className="relative">
+                                <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
+                                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
+                                    {msg.content}
+                                  </p>
+                                </div>
+                                
+                                {/* Copy Button */}
+                                <button
+                                  onClick={() => copyToClipboard(msg.content, idx)}
+                                  className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-gray-100 rounded-md"
+                                  title="Copy message"
+                                >
+                                  {copiedIndex === idx ? (
+                                    <Check className="h-3.5 w-3.5 text-green-600" />
+                                  ) : (
+                                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                                  )}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Loading State */}
+                        {generating && (
+                          <div className="flex gap-4 mb-8 animate-fade-in">
+                            <div className="flex-shrink-0">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white">
+                                <Sparkles className="h-4 w-4" />
+                              </div>
+                            </div>
+                            <div className="flex-1 space-y-2">
+                              <span className="text-sm font-semibold">ProdInt AI</span>
+                              <div className="flex items-center gap-1 h-6">
+                                <div className="flex gap-1">
+                                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        <div ref={messagesEndRef} />
                       </div>
                     )}
-                    <div ref={messagesEndRef} />
                   </div>
 
                   {/* Input */}
-                  <div className="border-t bg-white p-4">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        sendMessage()
-                      }}
-                      className="flex gap-3"
-                    >
-                      <Input
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Ask for changes or provide more context..."
-                        disabled={generating}
-                        className="h-11 shadow-sm"
-                      />
-                      <Button type="submit" disabled={generating || !message.trim()} className="h-11 px-6 shadow-sm">
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </form>
+                  <div className="border-t bg-gray-50/50 p-4">
+                    <div className="max-w-3xl mx-auto">
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault()
+                          sendMessage()
+                        }}
+                        className="flex gap-3"
+                      >
+                        <div className="flex-1 relative">
+                          <Input
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            placeholder="Ask for changes or provide more context..."
+                            disabled={generating}
+                            className="h-12 pr-12 shadow-sm border-gray-200 focus:border-primary"
+                          />
+                        </div>
+                        <Button 
+                          type="submit" 
+                          disabled={generating || !message.trim()} 
+                          size="lg"
+                          className="h-12 px-6 shadow-sm"
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </form>
+                      <p className="text-xs text-muted-foreground text-center mt-2">
+                        Press Enter to send
+                      </p>
+                    </div>
                   </div>
                 </div>
               </CardContent>

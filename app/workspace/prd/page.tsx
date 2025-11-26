@@ -532,15 +532,34 @@ export default function PRDAgentPage() {
                           e.preventDefault()
                           sendMessage()
                         }}
-                        className="flex gap-3"
+                        className="flex gap-3 items-end"
                       >
                         <div className="flex-1 relative">
-                          <Input
+                          <Textarea
                             value={message}
                             onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={(e) => {
+                              // Submit on Enter, but allow Shift+Enter for new line
+                              if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
+                                e.preventDefault()
+                                if (message.trim() && !generating) {
+                                  sendMessage()
+                                }
+                              }
+                            }}
                             placeholder="Ask for changes or provide more context..."
                             disabled={generating}
-                            className="h-12 pr-12 shadow-sm border-gray-200 focus:border-primary"
+                            className="min-h-[48px] max-h-[200px] resize-none shadow-sm border-gray-200 focus:border-primary"
+                            rows={1}
+                            style={{
+                              height: 'auto',
+                              overflowY: message.split('\n').length > 3 ? 'auto' : 'hidden'
+                            }}
+                            onInput={(e) => {
+                              const target = e.target as HTMLTextAreaElement
+                              target.style.height = 'auto'
+                              target.style.height = Math.min(target.scrollHeight, 200) + 'px'
+                            }}
                           />
                         </div>
                         <Button 
@@ -553,7 +572,7 @@ export default function PRDAgentPage() {
                         </Button>
                       </form>
                       <p className="text-xs text-muted-foreground text-center mt-2">
-                        Press Enter to send
+                        Press Enter to send, Shift+Enter for new line
                       </p>
                     </div>
                   </div>

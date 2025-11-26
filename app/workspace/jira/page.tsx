@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -13,6 +14,8 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { FileUpload } from '@/components/FileUpload'
 
 export default function JiraAgentPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
@@ -48,6 +51,19 @@ export default function JiraAgentPage() {
   useEffect(() => {
     fetchChats()
   }, [])
+
+  // Auto-select chat from query parameter
+  useEffect(() => {
+    const chatId = searchParams.get('chatId')
+    if (chatId && chats.length > 0) {
+      const chat = chats.find(c => c.id === chatId)
+      if (chat) {
+        setCurrentChat(chat)
+        // Clear the query parameter
+        router.replace('/workspace/jira', { scroll: false })
+      }
+    }
+  }, [searchParams, chats, router])
 
   useEffect(() => {
     scrollToBottom()
@@ -268,7 +284,7 @@ export default function JiraAgentPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 mx-auto">
                   <Users className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <p className="text-sm text-muted-foreground">No user stories yet</p>
+              <p className="text-sm text-muted-foreground">No user stories yet</p>
               </div>
             ) : (
               chats.map((chat) => (
@@ -432,12 +448,12 @@ export default function JiraAgentPage() {
                                   <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                                   <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                                   <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                                </div>
-                              </div>
-                            </div>
                           </div>
-                        )}
-                        <div ref={messagesEndRef} />
+                        </div>
+                        </div>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
                       </div>
                     )}
                   </div>
@@ -445,17 +461,17 @@ export default function JiraAgentPage() {
                   {/* Input */}
                   <div className="border-t bg-gray-50/50 p-4">
                     <div className="max-w-3xl mx-auto">
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault()
-                          sendMessage()
-                        }}
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        sendMessage()
+                      }}
                         className="flex gap-3 items-end"
-                      >
+                    >
                         <div className="flex-1 relative">
                           <Textarea
-                            value={message}
-                            onChange={(e) => setMessage(e.target.value)}
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
                             onKeyDown={(e) => {
                               // Submit on Enter, but allow Shift+Enter for new line
                               if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
@@ -465,8 +481,8 @@ export default function JiraAgentPage() {
                                 }
                               }
                             }}
-                            placeholder="Ask for changes or provide more context..."
-                            disabled={generating}
+                        placeholder="Ask for changes or provide more context..."
+                        disabled={generating}
                             className="min-h-[48px] max-h-[200px] resize-none shadow-sm border-gray-200 focus:border-primary"
                             rows={1}
                             style={{
@@ -486,9 +502,9 @@ export default function JiraAgentPage() {
                           size="lg"
                           className="h-12 px-6 shadow-sm"
                         >
-                          <Send className="h-4 w-4" />
-                        </Button>
-                      </form>
+                        <Send className="h-4 w-4" />
+                      </Button>
+                    </form>
                       <p className="text-xs text-muted-foreground text-center mt-2">
                         Press Enter to send, Shift+Enter for new line
                       </p>
@@ -505,8 +521,8 @@ export default function JiraAgentPage() {
               <div className="space-y-2">
                 <h3 className="text-2xl font-semibold">No user story selected</h3>
                 <p className="text-muted-foreground text-lg max-w-sm mx-auto">
-                  Create a new user story or select an existing one to continue
-                </p>
+                Create a new user story or select an existing one to continue
+              </p>
               </div>
               <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm mt-4">
                 <Plus className="h-4 w-4 mr-2" />

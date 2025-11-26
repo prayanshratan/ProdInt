@@ -10,7 +10,6 @@ import {
   FileText, 
   Users, 
   Settings, 
-  LogOut,
   Menu,
   X,
   FolderOpen
@@ -50,19 +49,6 @@ export default function WorkspaceLayout({
     checkSession()
   }, [router])
 
-  const handleLogout = async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' })
-      toast({ title: 'Logged out', description: 'See you soon!' })
-      router.push('/')
-    } catch (error) {
-      toast({ 
-        title: 'Error', 
-        description: 'Failed to logout',
-        variant: 'destructive' 
-      })
-    }
-  }
 
   if (loading) {
     return (
@@ -110,15 +96,6 @@ export default function WorkspaceLayout({
                 <span className="text-sm text-muted-foreground">Welcome,</span>
                 <span className="text-sm font-medium">{user?.name}</span>
               </div>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={handleLogout}
-                className="hover:bg-gray-100"
-                title="Logout"
-              >
-                <LogOut className="h-5 w-5" />
-              </Button>
             </div>
           </div>
         </div>

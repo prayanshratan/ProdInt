@@ -155,7 +155,7 @@ export default function WorkspacePage() {
                 <div
                   key={chat.id}
                   className="group flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-primary/20 hover:bg-gray-50 cursor-pointer transition-all-smooth"
-                  onClick={() => router.push(`/workspace/${chat.type}/${chat.id}`)}
+                  onClick={() => router.push(`/workspace/${chat.type}?chatId=${chat.id}`)}
                 >
                   <div className="flex items-center space-x-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">

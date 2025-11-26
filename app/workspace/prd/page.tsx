@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -15,6 +15,7 @@ import { FileUpload } from '@/components/FileUpload'
 
 export default function PRDAgentPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
@@ -99,6 +100,19 @@ export default function PRDAgentPage() {
     fetchChats()
     fetchTemplates()
   }, [])
+
+  // Auto-select chat from query parameter
+  useEffect(() => {
+    const chatId = searchParams.get('chatId')
+    if (chatId && chats.length > 0) {
+      const chat = chats.find(c => c.id === chatId)
+      if (chat) {
+        setCurrentChat(chat)
+        // Clear the query parameter
+        router.replace('/workspace/prd', { scroll: false })
+      }
+    }
+  }, [searchParams, chats, router])
 
   useEffect(() => {
     scrollToBottom()

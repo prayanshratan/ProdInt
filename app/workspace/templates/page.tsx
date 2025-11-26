@@ -60,7 +60,8 @@ export default function TemplatesPage() {
       
       const data = await res.json()
       if (data.template) {
-        setTemplates([...templates, data.template])
+        // Refetch all templates to ensure correct default status
+        await fetchTemplates()
         setShowNewDialog(false)
         setNewTemplate({ name: '', content: '' })
         toast({ title: 'Success', description: 'Template created successfully' })

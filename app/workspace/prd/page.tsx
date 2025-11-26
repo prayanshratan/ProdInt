@@ -689,7 +689,10 @@ export default function PRDAgentPage() {
               >
                 Cancel
               </Button>
-              <Button onClick={createNewChat} disabled={loading}>
+              <Button 
+                onClick={createNewChat} 
+                disabled={loading || (!newChatForm.onePager.trim() && !newChatForm.additionalContext.trim())}
+              >
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

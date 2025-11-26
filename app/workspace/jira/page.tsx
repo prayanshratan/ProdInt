@@ -374,7 +374,7 @@ export default function JiraAgentPage() {
                             </div>
 
                             {/* Message Content */}
-                            <div className={`flex-1 space-y-2 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                            <div className={`flex-1 space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-semibold">
                                   {msg.role === 'user' ? 'You' : 'ProdInt AI'}
@@ -384,26 +384,35 @@ export default function JiraAgentPage() {
                                 </span>
                               </div>
                               
-                              <div className="relative">
-                                <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
-                                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
-                                    {msg.content}
-                                  </p>
-                                </div>
-                                
-                                {/* Copy Button */}
-                                <button
-                                  onClick={() => copyToClipboard(msg.content, idx)}
-                                  className="absolute -right-2 top-0 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-gray-100 rounded-md"
-                                  title="Copy message"
-                                >
-                                  {copiedIndex === idx ? (
-                                    <Check className="h-3.5 w-3.5 text-green-600" />
-                                  ) : (
-                                    <Copy className="h-3.5 w-3.5 text-muted-foreground" />
-                                  )}
-                                </button>
+                              {/* Message Text */}
+                              <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
+                                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
+                                  {msg.content}
+                                </p>
                               </div>
+                              
+                              {/* Action Bar - Always visible for AI messages */}
+                              {msg.role === 'assistant' && (
+                                <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                                  <button
+                                    onClick={() => copyToClipboard(msg.content, idx)}
+                                    className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                                    title="Copy message"
+                                  >
+                                    {copiedIndex === idx ? (
+                                      <>
+                                        <Check className="h-3.5 w-3.5 text-green-600" />
+                                        <span className="text-green-600">Copied</span>
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Copy className="h-3.5 w-3.5" />
+                                        <span>Copy</span>
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}

@@ -150,5 +150,13 @@
     "isDefault": true,
     "id": "1764923472118",
     "createdAt": "2025-12-05T08:31:12.118Z"
+  },
+  {
+    "userId": "1764926416974",
+    "name": "Comprehensive PRD Template",
+    "content": "# Product Requirements Document (PRD) – Comprehensive Template\n\n## 0. Meta Information\n- Document Title:\n- Version:\n- Author:\n- Reviewers:\n- Last Updated:\n- Status: Draft / In Review / Approved\n- Tier: P0 / P1 / P2\n- Target Release:\n\n## 1. Executive Summary\nBrief overview of the problem, importance, users, high-level impact, and key decisions.\n\n## 2. Background & Context\n\n### 2.1 Problem Statement\n- What problem are we solving?\n- Cost of inaction.\n\n### 2.2 User Pain Points\n- UX issues  \n- Operational burden  \n- Performance limitations  \n\n### 2.3 Current State Analysis\n- Existing workflows  \n- System limitations  \n- Architecture overview  \n\n### 2.4 Related Work / Dependencies\n- Previous attempts  \n- Impact on adjacent teams  \n\n## 3. Objectives & Non-Objectives\n\n### 3.1 Goals\n- What success looks like.\n\n### 3.2 Non-Goals\n- What is explicitly out of scope.\n\n## 4. Personas & Use Cases\n\n### 4.1 Target Personas\n- Role  \n- Motivations  \n- Jobs-to-be-done  \n\n### 4.2 Primary Use Cases\n### 4.3 Secondary Use Cases\n\n## 5. Requirements\n\n### 5.1 Functional Requirements\nFormat per requirement:\n- ID (FR-01…)  \n- Description  \n- Priority  \n- Acceptance Criteria (each criteria must test ONE condition only - split compound \"and/or\" statements into separate criteria)\n- Edge cases  \n- Metrics  \n\n### 5.2 Non-Functional Requirements\n- Reliability  \n- Security  \n- Scalability  \n- Observability  \n- Compliance  \n\n## 6. User Experience Design\n\n### 6.1 UX Principles\n### 6.2 User Flows\n### 6.3 Wireframes\n### 6.4 UI Specifications\n\n## 7. Technical Design\n\n### 7.1 Proposed Architecture\n### 7.2 API Design\n### 7.3 Data Models\n### 7.4 Migration Plan\n### 7.5 Scaling Considerations\n### 7.6 Security Considerations\n\n## 8. Rollout Plan\n\n### 8.1 Release Strategy\n### 8.2 Migration Strategy\n### 8.3 Backwards Compatibility\n### 8.4 Rollback Plan\n\n## 9. GTM + Cross-Functional Alignment\n\n### 9.1 Documentation\n### 9.2 Sales Enablement\n### 9.3 Support Playbook\n### 9.4 Marketing Plan\n\n## 10. Risks & Mitigation\n\n### 10.1 Product Risks\n### 10.2 Technical Risks\n### 10.3 Business Risks\n### 10.4 Mitigation\n\n## 11. Metrics & Analytics\n\n### 11.1 Success Metrics\n### 11.2 Instrumentation Required\n### 11.3 Dashboard Spec\n\n## 12. Appendices\n- Glossary  \n- Customer Quotes  \n- Raw Research  \n- Competitor Analysis  \n- MoM from meetings  \n",
+    "isDefault": true,
+    "id": "1764926416977",
+    "createdAt": "2025-12-05T09:20:16.977Z"
   }
 ]

@@ -137,5 +137,12 @@
     "company": "",
     "designation": "",
     "apiKey": "AIzaSyDv8MrOUtqOeKU97GRWJBt0CoPxmqa6mYE"
+  },
+  {
+    "name": "Test User",
+    "email": "testuser@example.com",
+    "password": "$2a$10$k5DUO.9Q0/Q.DEcPJl1iaevQPlyg38L7gJcV.n4O8xeY/EvgdIH0e",
+    "id": "1764926416974",
+    "createdAt": "2025-12-05T09:20:16.974Z"
   }
 ]

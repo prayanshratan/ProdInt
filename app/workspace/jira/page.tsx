@@ -12,6 +12,7 @@ import { Users, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkl
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { FileUpload } from '@/components/FileUpload'
+import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
 export default function JiraAgentPage() {
   const router = useRouter()
@@ -401,10 +402,14 @@ export default function JiraAgentPage() {
                               </div>
                               
                               {/* Message Text */}
-                              <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
-                                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
-                                  {msg.content}
-                                </p>
+                              <div className={`max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
+                                {msg.role === 'assistant' ? (
+                                  <MarkdownRenderer content={msg.content} />
+                                ) : (
+                                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
+                                    {msg.content}
+                                  </p>
+                                )}
                               </div>
                               
                               {/* Action Bar - Always visible for AI messages */}

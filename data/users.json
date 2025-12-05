@@ -100,42 +100,5 @@
     "password": "$2a$10$d8J074KaEjpWfQjTwdbrFeVTOND4LXsfoH0rxGChkyG6uM62um366",
     "id": "1763303066472",
     "createdAt": "2025-11-16T14:24:26.472Z"
-  },
-  {
-    "name": "Prayansh",
-    "email": "testqwwe@test.com",
-    "password": "$2a$10$m/nlFkQXnP7am1bOci4dFuqM2Kh0ZLOq6/ZREZT/LmSBrYLCA1s5y",
-    "id": "1763577371701",
-    "createdAt": "2025-11-19T18:36:11.701Z",
-    "company": "",
-    "designation": ""
-  },
-  {
-    "name": "Prayansh",
-    "email": "fsonrw@gmail.com",
-    "password": "$2a$10$CsckS2i/0NbATXAieGNsL.pgLset5lBYm3q99jECq2vJo9Vnbymgu",
-    "id": "1763577505428",
-    "createdAt": "2025-11-19T18:38:25.428Z",
-    "company": "",
-    "designation": ""
-  },
-  {
-    "name": "Prayansh",
-    "email": "trrsn@gmail.com",
-    "password": "$2a$10$ejsg4ncDZdjzjSmUVF2uOe3SgJi2TeCnllrFmquSme5ZYJTCyrkli",
-    "id": "1764012040694",
-    "createdAt": "2025-11-24T19:20:40.694Z",
-    "company": "",
-    "designation": ""
-  },
-  {
-    "name": "Test",
-    "email": "Test@apikeytest.com",
-    "password": "$2a$10$ZZLy1pFnMwDW1YbJ.hc/8.5uw8vAz4dqRovszIe5ygTbbyPWugHYO",
-    "id": "1764923472112",
-    "createdAt": "2025-12-05T08:31:12.112Z",
-    "company": "",
-    "designation": "",
-    "apiKey": "AIzaSyDv8MrOUtqOeKU97GRWJBt0CoPxmqa6mYE"
   }
 ]

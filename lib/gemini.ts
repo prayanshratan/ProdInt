@@ -1,10 +1,22 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import customInstructions from '../kb/custom-instructions.json'
 
-const DEFAULT_API_KEY = 'AIzaSyD-tTYZvs-E7pgHzt-dlML68-_hpfr-RlI'
-
+/**
+ * Get a Gemini client instance
+ * @param apiKey - Optional user-provided API key (from their settings)
+ * @returns GoogleGenerativeAI client
+ * @throws Error if no API key is available
+ */
 export function getGeminiClient(apiKey?: string) {
-  const key = apiKey || DEFAULT_API_KEY
+  // Priority: User's API key > Environment variable
+  const key = apiKey || process.env.GEMINI_API_KEY
+  
+  if (!key) {
+    throw new Error(
+      'No Gemini API key available. Please set GEMINI_API_KEY environment variable or provide your own key in Settings.'
+    )
+  }
+  
   return new GoogleGenerativeAI(key)
 }
 

@@ -93,49 +93,59 @@ export default function SettingsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="flex items-center justify-center py-16">
+        <div className="text-center space-y-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 mx-auto animate-pulse">
+            <SettingsIcon className="h-8 w-8 text-white" />
+          </div>
+          <p className="text-muted-foreground text-lg">Loading settings...</p>
+        </div>
       </div>
     )
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      <div>
-        <h1 className="text-4xl font-bold mb-2">Settings</h1>
-        <p className="text-muted-foreground text-lg">
+    <div className="space-y-8 max-w-4xl">
+      <div className="space-y-2">
+        <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Settings</h1>
+        <p className="text-muted-foreground text-xl">
           Manage your account and preferences
         </p>
       </div>
 
       {/* Profile Settings */}
-      <Card>
-        <CardHeader>
+      <Card className="border-0 shadow-enterprise bg-white">
+        <CardHeader className="border-b">
           <div className="flex items-center space-x-2">
-            <User className="h-5 w-5" />
-            <CardTitle>Profile Information</CardTitle>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <User className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">Profile Information</CardTitle>
+              <CardDescription>
+                Update your personal information
+              </CardDescription>
+            </div>
           </div>
-          <CardDescription>
-            Update your personal information
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5 pt-6">
           <div className="space-y-2">
-            <Label htmlFor="name">Full Name</Label>
+            <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
             <Input
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="h-11"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm font-medium">Email</Label>
             <Input
               id="email"
               value={user?.email || ''}
               disabled
-              className="bg-muted"
+              className="bg-gray-50 h-11"
             />
             <p className="text-xs text-muted-foreground">
               Email cannot be changed
@@ -143,47 +153,54 @@ export default function SettingsPage() {
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="company">Company</Label>
+            <Label htmlFor="company" className="text-sm font-medium">Company</Label>
             <Input
               id="company"
               value={formData.company}
               onChange={(e) => setFormData({ ...formData, company: e.target.value })}
               placeholder="Your company name"
+              className="h-11"
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="designation">Designation</Label>
+            <Label htmlFor="designation" className="text-sm font-medium">Designation</Label>
             <Input
               id="designation"
               value={formData.designation}
               onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
               placeholder="Your role/title"
+              className="h-11"
             />
           </div>
         </CardContent>
       </Card>
 
       {/* API Key Settings */}
-      <Card>
-        <CardHeader>
+      <Card className="border-0 shadow-enterprise bg-white">
+        <CardHeader className="border-b">
           <div className="flex items-center space-x-2">
-            <Key className="h-5 w-5" />
-            <CardTitle>API Key</CardTitle>
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Key className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">API Key</CardTitle>
+              <CardDescription>
+                Update your Google Gemini API key for AI features
+              </CardDescription>
+            </div>
           </div>
-          <CardDescription>
-            Update your Google Gemini API key for AI features
-          </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5 pt-6">
           <div className="space-y-2">
-            <Label htmlFor="apiKey">Google Gemini API Key</Label>
+            <Label htmlFor="apiKey" className="text-sm font-medium">Google Gemini API Key</Label>
             <Input
               id="apiKey"
               type="password"
               value={formData.apiKey}
               onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
               placeholder={user?.hasApiKey ? '••••••••••••••••' : 'Enter your API key'}
+              className="h-11"
             />
             <p className="text-xs text-muted-foreground">
               {user?.hasApiKey 
@@ -194,29 +211,45 @@ export default function SettingsPage() {
               href="https://aistudio.google.com/app/apikey" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline inline-block"
+              className="text-xs text-primary hover:underline inline-block font-medium transition-colors"
             >
               Get your free API key from Google AI Studio →
             </a>
           </div>
 
-          <div className="bg-muted p-4 rounded-lg">
-            <h4 className="font-medium mb-2 text-sm">Why provide your own API key?</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              <li>• Better rate limits and performance</li>
-              <li>• Your data stays under your Google account</li>
-              <li>• Help us keep this product free</li>
-              <li>• No credit card required for Google&apos;s free tier</li>
+          <div className="bg-primary/5 border border-primary/10 p-5 rounded-xl">
+            <h4 className="font-semibold mb-3 text-sm flex items-center gap-2">
+              <Key className="h-4 w-4 text-primary" />
+              Why provide your own API key?
+            </h4>
+            <ul className="text-sm text-muted-foreground space-y-2">
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span>Better rate limits and performance</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span>Your data stays under your Google account</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span>Help us keep this product free</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-primary mt-0.5">•</span>
+                <span>No credit card required for Google&apos;s free tier</span>
+              </li>
             </ul>
           </div>
         </CardContent>
       </Card>
 
       {/* Actions */}
-      <div className="flex items-center justify-between pt-4">
+      <div className="flex items-center justify-between pt-4 pb-8">
         <Button
-          variant="destructive"
+          variant="outline"
           onClick={handleLogout}
+          className="shadow-sm hover:bg-destructive hover:text-white hover:border-destructive"
         >
           <LogOut className="h-4 w-4 mr-2" />
           Logout
@@ -226,6 +259,7 @@ export default function SettingsPage() {
           onClick={handleSave}
           disabled={saving}
           size="lg"
+          className="shadow-sm"
         >
           {saving ? (
             <>

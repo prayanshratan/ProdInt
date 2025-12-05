@@ -88,31 +88,36 @@ export default function OnboardingPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Sparkles className="h-12 w-12 text-primary mx-auto mb-4 animate-pulse" />
-          <p className="text-muted-foreground">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center space-y-4">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 mx-auto animate-pulse">
+            <Sparkles className="h-8 w-8 text-white" />
+          </div>
+          <p className="text-muted-foreground text-lg">Loading...</p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-white to-blue-50 p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-white p-4">
+      <div className="absolute inset-0 gradient-mesh"></div>
+      <Card className="relative w-full max-w-2xl border-0 shadow-enterprise-lg animate-scale-in">
+        <CardHeader className="text-center space-y-4 pb-8">
           <div className="flex items-center justify-center mb-4">
-            <Sparkles className="h-10 w-10 text-primary" />
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600">
+              <Sparkles className="h-8 w-8 text-white" />
+            </div>
           </div>
-          <CardTitle className="text-3xl">Welcome to ProdInt!</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-4xl tracking-tight">Welcome to ProdInt!</CardTitle>
+          <CardDescription className="text-lg">
             Let&apos;s set up your profile to get started
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="space-y-2">
-              <Label htmlFor="name">
+              <Label htmlFor="name" className="text-sm font-medium">
                 Full Name <span className="text-destructive">*</span>
               </Label>
               <Input
@@ -121,17 +126,18 @@ export default function OnboardingPage() {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
+                className="h-11"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email" className="text-sm font-medium">Email</Label>
               <Input
                 id="email"
                 type="email"
                 value={formData.email}
                 disabled
-                className="bg-muted"
+                className="bg-gray-50 h-11"
               />
               <p className="text-xs text-muted-foreground">
                 Email cannot be changed
@@ -139,37 +145,40 @@ export default function OnboardingPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="company">Company (Optional)</Label>
+              <Label htmlFor="company" className="text-sm font-medium">Company (Optional)</Label>
               <Input
                 id="company"
                 type="text"
                 placeholder="Acme Inc."
                 value={formData.company}
                 onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                className="h-11"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="designation">Designation (Optional)</Label>
+              <Label htmlFor="designation" className="text-sm font-medium">Designation (Optional)</Label>
               <Input
                 id="designation"
                 type="text"
                 placeholder="Senior Product Manager"
                 value={formData.designation}
                 onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+                className="h-11"
               />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="apiKey">Google Gemini API Key (Optional)</Label>
+              <Label htmlFor="apiKey" className="text-sm font-medium">Google Gemini API Key (Optional)</Label>
               <Input
                 id="apiKey"
                 type="password"
                 placeholder="AIza..."
                 value={formData.apiKey}
                 onChange={(e) => setFormData({ ...formData, apiKey: e.target.value })}
+                className="h-11"
               />
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 We appreciate if you use your own API key. This is a free product and helps us maintain it. 
                 Don&apos;t worry, if you don&apos;t have one, we&apos;ll use our default key.
               </p>
@@ -177,13 +186,13 @@ export default function OnboardingPage() {
                 href="https://aistudio.google.com/app/apikey" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline inline-block"
+                className="text-xs text-primary hover:underline inline-block font-medium transition-colors"
               >
                 Get your free API key from Google AI Studio →
               </a>
             </div>
 
-            <Button type="submit" className="w-full" size="lg" disabled={loading}>
+            <Button type="submit" className="w-full h-12 text-base shadow-lg" size="lg" disabled={loading}>
               {loading ? 'Setting up...' : 'Complete setup'}
             </Button>
           </form>

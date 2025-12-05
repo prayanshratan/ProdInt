@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import customInstructions from '../kb/custom-instructions.json'
 
-const DEFAULT_API_KEY = 'AIzaSyDv8MrOUtqOeKU97GRWJBt0CoPxmqa6mYE'
+const DEFAULT_API_KEY = 'AIzaSyD-tTYZvs-E7pgHzt-dlML68-_hpfr-RlI'
 
 export function getGeminiClient(apiKey?: string) {
   const key = apiKey || DEFAULT_API_KEY
@@ -34,11 +34,44 @@ export async function generatePRD(
 
   const systemInstructions = getSystemInstructions()
   
+  // Detect if template is HTML or Markdown
+  const isHtmlTemplate = template && /<[a-z][\s\S]*>/i.test(template)
+  
   let prompt = `${systemInstructions}\n\n`
   prompt += `You are an expert Product Manager tasked with writing a comprehensive Product Requirements Document (PRD).\n\n`
   
   if (template) {
     prompt += `Use the following PRD template structure:\n\n${template}\n\n`
+    
+    // CRITICAL: Tell LLM to match the template format
+    if (isHtmlTemplate) {
+      prompt += `**CRITICAL FORMATTING REQUIREMENTS:**
+- The template above is in HTML format with rich formatting
+- You MUST generate your response in HTML format to preserve all formatting
+- Maintain the same HTML tags, styles, fonts, colors, and table structures as shown in the template
+- Use the exact same heading levels (<h1>, <h2>, <h3>, etc.)
+- Preserve table structures with <table>, <tr>, <td> tags
+- Keep all inline styles (style="...") to maintain fonts, colors, and formatting
+- DO NOT use Markdown syntax (**, *, |, etc.) - use HTML tags instead
+- Example: Use <strong>text</strong> NOT **text**, use <em>text</em> NOT *text*
+- Example: Use <table> NOT markdown tables with |
+- Your output should be valid HTML that can be directly rendered in a document
+
+`
+    } else {
+      prompt += `**FORMATTING REQUIREMENTS:**
+- Generate your response in Markdown format
+- Use proper Markdown syntax for formatting
+- Use ## for headings, **bold**, *italic*, tables with |, etc.
+
+`
+    }
+  } else {
+    prompt += `**FORMATTING REQUIREMENTS:**
+- Generate your response in clean Markdown format
+- Use ## for headings, **bold**, *italic*, tables with |, etc.
+
+`
   }
   
   if (onePager) {
@@ -57,7 +90,7 @@ export async function generatePRD(
     prompt += `\n`
   }
   
-  prompt += `\nPlease generate a comprehensive PRD based on the above information. Fill in all sections with detailed, specific, and actionable content.`
+  prompt += `\nPlease generate a comprehensive PRD based on the above information. Fill in all sections with detailed, specific, and actionable content. Remember to use the EXACT same formatting style as the template provided.`
 
   const result = await model.generateContent(prompt)
   const response = await result.response
@@ -129,6 +162,10 @@ export async function continueConversation(
 
   const systemInstructions = getSystemInstructions()
   
+  // Detect format from conversation history (check last assistant message)
+  const lastAssistantMessage = [...conversationHistory].reverse().find(msg => msg.role === 'assistant')
+  const isHtmlFormat = lastAssistantMessage && /<[a-z][\s\S]*>/i.test(lastAssistantMessage.content)
+  
   let prompt = `${systemInstructions}\n\n`
   
   if (conversationType === 'prd') {
@@ -136,17 +173,31 @@ export async function continueConversation(
     if (context?.template) {
       prompt += `Original template structure:\n${context.template}\n\n`
     }
+    
+    // CRITICAL: Maintain the same format as previous messages
+    if (isHtmlFormat) {
+      prompt += `**CRITICAL FORMATTING REQUIREMENTS:**
+- Your previous responses were in HTML format with rich formatting
+- You MUST continue using HTML format in your response
+- DO NOT switch to Markdown syntax
+- Use HTML tags: <strong>, <em>, <h1>, <h2>, <table>, etc.
+- Preserve all inline styles and formatting from previous responses
+- Example: Use <strong>text</strong> NOT **text**
+- Your output should be valid HTML that matches the previous formatting
+
+`
+    }
   } else {
     prompt += `You are an expert Product Manager helping to refine Jira user stories.\n\n`
   }
   
   prompt += `Conversation history:\n`
   conversationHistory.forEach(msg => {
-    prompt += `${msg.role}: ${msg.content}\n`
+    prompt += `${msg.role}: ${msg.content.substring(0, 500)}...\n` // Truncate long messages for context
   })
   
   prompt += `\nUser: ${userMessage}\n\n`
-  prompt += `Please respond to the user's feedback or request. If they're asking for edits, provide the updated content. If they're providing more context, acknowledge it and update the document accordingly.`
+  prompt += `Please respond to the user's feedback or request. If they're asking for edits, provide the updated content in the SAME FORMAT as your previous responses. If they're providing more context, acknowledge it and update the document accordingly while maintaining the same formatting style.`
 
   const result = await model.generateContent(prompt)
   const response = await result.response

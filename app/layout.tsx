@@ -8,6 +8,10 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "ProdInt - AI-Powered Product Management",
   description: "Enterprise-grade AI assistant for Product Managers. Create PRDs, user stories, and more.",
+  icons: {
+    icon: '/icon',
+    apple: '/apple-icon',
+  },
 }
 
 export default function RootLayout({

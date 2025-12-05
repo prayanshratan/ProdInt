@@ -50,8 +50,23 @@ export default function PRDAgentPage() {
     }
   }
 
+  // Strip conversational preamble from AI responses, keeping only the document content
+  const stripPreamble = (content: string): string => {
+    // Find the first heading (# or ##) which marks the start of the actual document
+    const headingMatch = content.match(/^(#{1,6}\s+.+)$/m)
+    if (headingMatch && headingMatch.index !== undefined) {
+      // Return content starting from the first heading
+      return content.substring(headingMatch.index).trim()
+    }
+    // If no heading found, return original content
+    return content
+  }
+
   const downloadMessage = async (content: string, format: 'md' | 'docx' = 'md', messageIndex: number) => {
     const filename = `${currentChat.title}-v${messageIndex + 1}`
+    
+    // Strip conversational preamble before downloading
+    const cleanContent = stripPreamble(content)
     
     if (format === 'docx') {
       try {
@@ -59,7 +74,7 @@ export default function PRDAgentPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            markdown: content,
+            markdown: cleanContent,
             title: filename,
           }),
         })
@@ -83,7 +98,7 @@ export default function PRDAgentPage() {
         toast({ title: 'Error', description: 'Failed to download DOCX', variant: 'destructive' })
       }
     } else {
-      const blob = new Blob([content], { type: 'text/markdown' })
+      const blob = new Blob([cleanContent], { type: 'text/markdown' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url

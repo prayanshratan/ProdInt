@@ -130,23 +130,23 @@ async function htmlToDocx(html: string, title: string): Promise<Buffer> {
 
 /**
  * Main conversion function that handles both HTML and Markdown
- * Uses html-to-docx for better formatting preservation
+ * Uses internal docx generation for reliable formatting
  */
 export async function markdownToDocx(content: string, title: string): Promise<Buffer> {
   try {
     // Detect if content is HTML or Markdown
     if (isHtmlContent(content)) {
-      // Use html-to-docx for HTML content to preserve all formatting
-      return await htmlToDocxAdvanced(content, title)
+      // Convert HTML to markdown first, then to DOCX
+      const markdown = htmlToMarkdown(content)
+      return markdownToDocxInternal(markdown, title)
     } else {
-      // Convert markdown to HTML first, then to DOCX
-      const htmlContent = markdownToHtml(content)
-      return await htmlToDocxAdvanced(htmlContent, title)
+      // Use internal DOCX generation directly for markdown
+      // This provides much better list formatting than html-to-docx
+      return markdownToDocxInternal(content, title)
     }
   } catch (error) {
     console.error('Error in markdownToDocx:', error)
-    // Fallback to internal conversion if html-to-docx fails
-    return markdownToDocxInternal(content, title)
+    throw error
   }
 }
 
@@ -199,14 +199,15 @@ function markdownToHtml(markdown: string): string {
     return `<<<CODE_BLOCK_${codeBlocks.length - 1}>>>`
   })
   
-  // Convert headings (must be done before other conversions)
+  // Convert headings FIRST (must be done before other conversions)
+  html = html.replace(/^###### (.+)$/gm, '<h6 style="font-size: 12px; font-weight: bold; margin: 8px 0;">$1</h6>')
   html = html.replace(/^##### (.+)$/gm, '<h5 style="font-size: 14px; font-weight: bold; margin: 10px 0;">$1</h5>')
   html = html.replace(/^#### (.+)$/gm, '<h4 style="font-size: 16px; font-weight: bold; margin: 12px 0;">$1</h4>')
   html = html.replace(/^### (.+)$/gm, '<h3 style="font-size: 18px; font-weight: bold; margin: 14px 0;">$1</h3>')
   html = html.replace(/^## (.+)$/gm, '<h2 style="font-size: 22px; font-weight: bold; margin: 16px 0;">$1</h2>')
   html = html.replace(/^# (.+)$/gm, '<h1 style="font-size: 26px; font-weight: bold; margin: 18px 0;">$1</h1>')
   
-  // Convert tables (before other conversions)
+  // Convert tables BEFORE inline formatting (before other conversions)
   const tableRegex = /\n?\|(.+)\|[\r\n]+\|[-:| ]+\|[\r\n]+((?:\|.+\|[\r\n]*)+)/g
   html = html.replace(tableRegex, (match, header, body) => {
     const headerCells = header.split('|').filter((c: string) => c.trim()).map((cell: string) => cell.trim())
@@ -234,56 +235,104 @@ function markdownToHtml(markdown: string): string {
     return table
   })
   
-  // Convert bold and italic (bold first to avoid conflicts)
-  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-  html = html.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>')
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
-  html = html.replace(/_(.+?)_/g, '<em>$1</em>')
-  
-  // Convert strikethrough
-  html = html.replace(/~~(.+?)~~/g, '<s>$1</s>')
-  
-  // Convert inline code
-  html = html.replace(/`(.+?)`/g, '<code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace;">$1</code>')
-  
-  // Convert links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #0066cc; text-decoration: underline;">$1</a>')
-  
-  // Convert horizontal rules
+  // Convert horizontal rules BEFORE list processing
   html = html.replace(/^---+$/gm, '<hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">')
   html = html.replace(/^\*\*\*+$/gm, '<hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">')
   
-  // Convert unordered lists (with proper nesting)
-  const listLines = html.split('\n')
+  // Convert LISTS BEFORE inline formatting (critical fix!)
+  // This ensures bullet points like "* **Bold text**" are detected as lists first
+  const lines = html.split('\n')
   const processedLines: string[] = []
-  let inList = false
+  let inUnorderedList = false
+  let inOrderedList = false
+  let currentIndent = 0
   
-  for (let i = 0; i < listLines.length; i++) {
-    const line = listLines[i]
-    const listMatch = line.match(/^[\s]*([\*\-\+])\s+(.+)$/)
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const trimmedLine = line.trim()
     
-    if (listMatch) {
-      if (!inList) {
-        processedLines.push('<ul style="margin: 10px 0; padding-left: 30px;">')
-        inList = true
+    // Skip empty lines but track list state
+    if (trimmedLine === '') {
+      if (inUnorderedList) {
+        processedLines.push('</ul>')
+        inUnorderedList = false
       }
-      processedLines.push(`  <li style="margin: 5px 0;">${listMatch[2]}</li>`)
-    } else if (inList) {
-      processedLines.push('</ul>')
-      inList = false
+      if (inOrderedList) {
+        processedLines.push('</ol>')
+        inOrderedList = false
+      }
       processedLines.push(line)
+      continue
+    }
+    
+    // Skip lines that are already HTML tags (headings, hr, etc.)
+    if (trimmedLine.startsWith('<')) {
+      if (inUnorderedList) {
+        processedLines.push('</ul>')
+        inUnorderedList = false
+      }
+      if (inOrderedList) {
+        processedLines.push('</ol>')
+        inOrderedList = false
+      }
+      processedLines.push(line)
+      continue
+    }
+    
+    // Check for unordered list (must match start of line, allowing leading whitespace for nesting)
+    const unorderedMatch = line.match(/^(\s*)([\*\-\+])\s+(.+)$/)
+    
+    // Check for ordered list (only at start of line, not within content like "1. Cost of inaction:")
+    // Only match if it's at the beginning of content (no leading text) and the number is reasonable (1-999)
+    const orderedMatch = line.match(/^(\s*)(\d{1,3})\.\s+(.+)$/)
+    
+    if (unorderedMatch) {
+      const [, indent, , content] = unorderedMatch
+      if (!inUnorderedList) {
+        if (inOrderedList) {
+          processedLines.push('</ol>')
+          inOrderedList = false
+        }
+        processedLines.push('<ul style="margin: 10px 0; padding-left: 30px;">')
+        inUnorderedList = true
+      }
+      // Apply inline formatting to the list item content
+      const formattedContent = applyInlineFormatting(content)
+      processedLines.push(`  <li style="margin: 5px 0;">${formattedContent}</li>`)
+    } else if (orderedMatch) {
+      const [, indent, num, content] = orderedMatch
+      if (!inOrderedList) {
+        if (inUnorderedList) {
+          processedLines.push('</ul>')
+          inUnorderedList = false
+        }
+        processedLines.push('<ol style="margin: 10px 0; padding-left: 30px;">')
+        inOrderedList = true
+      }
+      // Apply inline formatting to the list item content
+      const formattedContent = applyInlineFormatting(content)
+      processedLines.push(`  <li style="margin: 5px 0;">${formattedContent}</li>`)
     } else {
-      processedLines.push(line)
+      // Not a list item - close any open lists
+      if (inUnorderedList) {
+        processedLines.push('</ul>')
+        inUnorderedList = false
+      }
+      if (inOrderedList) {
+        processedLines.push('</ol>')
+        inOrderedList = false
+      }
+      // Apply inline formatting to regular content
+      const formattedLine = applyInlineFormatting(line)
+      processedLines.push(formattedLine)
     }
   }
-  if (inList) processedLines.push('</ul>')
-  html = processedLines.join('\n')
   
-  // Convert ordered lists
-  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li style="margin: 5px 0;">$1</li>')
-  html = html.replace(/(<li style="margin: 5px 0;">.*<\/li>\n?)+/g, '<ol style="margin: 10px 0; padding-left: 30px;">$&</ol>')
+  // Close any remaining open lists
+  if (inUnorderedList) processedLines.push('</ul>')
+  if (inOrderedList) processedLines.push('</ol>')
+  
+  html = processedLines.join('\n')
   
   // Restore code blocks with styling
   codeBlocks.forEach((code, index) => {
@@ -298,7 +347,7 @@ function markdownToHtml(markdown: string): string {
   html = finalLines.map(line => {
     const trimmed = line.trim()
     if (trimmed === '') return ''
-    if (trimmed.startsWith('<') || line.includes('</') || trimmed.includes('<') && trimmed.includes('>')) return line
+    if (trimmed.startsWith('<') || line.includes('</') || (trimmed.includes('<') && trimmed.includes('>'))) return line
     return `<p style="margin: 10px 0; line-height: 1.6;">${line}</p>`
   }).join('\n')
   
@@ -310,10 +359,42 @@ function markdownToHtml(markdown: string): string {
 }
 
 /**
+ * Apply inline markdown formatting (bold, italic, code, links, strikethrough)
+ * Used by markdownToHtml to format content within list items and paragraphs
+ */
+function applyInlineFormatting(text: string): string {
+  let result = text
+  
+  // Convert bold and italic (bold first to avoid conflicts)
+  // Bold + Italic
+  result = result.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+  result = result.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
+  // Bold
+  result = result.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+  result = result.replace(/__(.+?)__/g, '<strong>$1</strong>')
+  // Italic (be careful not to match list bullets)
+  result = result.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>')
+  result = result.replace(/(?<!_)_([^_]+?)_(?!_)/g, '<em>$1</em>')
+  
+  // Convert strikethrough
+  result = result.replace(/~~(.+?)~~/g, '<s>$1</s>')
+  
+  // Convert inline code
+  result = result.replace(/`([^`]+?)`/g, '<code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace;">$1</code>')
+  
+  // Convert links
+  result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #0066cc; text-decoration: underline;">$1</a>')
+  
+  return result
+}
+
+/**
  * Convert markdown content to docx format with proper formatting (internal function)
  */
 async function markdownToDocxInternal(markdown: string, title: string): Promise<Buffer> {
-  const lines = markdown.split('\n')
+  // Normalize line endings
+  const normalizedMarkdown = markdown.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+  const lines = normalizedMarkdown.split('\n')
   const children: (Paragraph | Table)[] = []
   
   let i = 0
@@ -482,30 +563,47 @@ async function markdownToDocxInternal(markdown: string, title: string): Promise<
         })
       )
     }
-    // Numbered lists
-    else if (/^\d+\.\s/.test(trimmedLine)) {
-      const match = trimmedLine.match(/^(\d+)\.\s(.*)$/)
-      if (match) {
-        const level = (line.length - line.trimStart().length) / 2
+    // Bullet lists - check BEFORE numbered lists to avoid conflicts
+    // Match lines starting with -, *, or + followed by space
+    else if (/^[\s]*[-*+]\s+/.test(line)) {
+      const bulletMatch = line.match(/^(\s*)([-*+])\s+(.*)$/)
+      if (bulletMatch) {
+        const indent = bulletMatch[1].length
+        const content = bulletMatch[3]
+        const level = Math.floor(indent / 2)
         children.push(
           new Paragraph({
-            children: parseInlineFormatting(match[2]),
-            numbering: { reference: 'default-numbering', level: Math.floor(level) },
+            children: parseInlineFormatting(content),
+            bullet: { level: Math.min(level, 2) }, // Max 3 levels
+            spacing: { before: 100, after: 100 },
+          })
+        )
+      } else {
+        // Fallback if regex doesn't match
+        children.push(
+          new Paragraph({
+            children: parseInlineFormatting(trimmedLine.substring(2)),
+            bullet: { level: 0 },
             spacing: { before: 100, after: 100 },
           })
         )
       }
     }
-    // Bullet lists
-    else if (trimmedLine.startsWith('- ') || trimmedLine.startsWith('* ') || trimmedLine.startsWith('+ ')) {
-      const level = (line.length - line.trimStart().length) / 2
-      children.push(
-        new Paragraph({
-          children: parseInlineFormatting(trimmedLine.substring(2)),
-          bullet: { level: Math.floor(level) },
-          spacing: { before: 100, after: 100 },
-        })
-      )
+    // Numbered lists - only match lines that are clearly ordered lists (at start of line)
+    else if (/^[\s]*\d{1,3}\.\s+/.test(line)) {
+      const numMatch = line.match(/^(\s*)(\d{1,3})\.\s+(.*)$/)
+      if (numMatch) {
+        const indent = numMatch[1].length
+        const content = numMatch[3]
+        const level = Math.floor(indent / 2)
+        children.push(
+          new Paragraph({
+            children: parseInlineFormatting(content),
+            numbering: { reference: 'default-numbering', level: Math.min(level, 2) },
+            spacing: { before: 100, after: 100 },
+          })
+        )
+      }
     }
     // Empty lines
     else if (trimmedLine === '') {

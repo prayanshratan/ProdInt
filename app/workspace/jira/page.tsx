@@ -203,6 +203,16 @@ export default function JiraAgentPage() {
     }
   }
 
+  // Strip conversational preamble from AI responses, keeping only the document content
+  const stripPreamble = (content: string): string => {
+    // Find the first heading (# or ##) or user story marker which marks the start of actual content
+    const headingMatch = content.match(/^(#{1,6}\s+.+|(?:User Story|US[-\s]?\d+|As a ).+)$/im)
+    if (headingMatch && headingMatch.index !== undefined) {
+      return content.substring(headingMatch.index).trim()
+    }
+    return content
+  }
+
   const downloadUserStories = async (format: 'md' | 'docx' = 'md') => {
     if (!currentChat?.messages || currentChat.messages.length === 0) {
       toast({ title: 'Error', description: 'No user stories to download', variant: 'destructive' })
@@ -211,7 +221,7 @@ export default function JiraAgentPage() {
     
     const assistantMessages = currentChat.messages
       .filter((m: any) => m.role === 'assistant')
-      .map((m: any) => m.content)
+      .map((m: any) => stripPreamble(m.content)) // Strip preamble from each message
       .join('\n\n---\n\n')
     
     if (format === 'docx') {

@@ -1,7 +1,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import customInstructions from '../kb/custom-instructions.json'
 
-const DEFAULT_API_KEY = 'AIzaSyDv8MrOUtqOeKU97GRWJBt0CoPxmqa6mYE'
+const DEFAULT_API_KEY = 'AIzaSyD-tTYZvs-E7pgHzt-dlML68-_hpfr-RlI'
 
 export function getGeminiClient(apiKey?: string) {
   const key = apiKey || DEFAULT_API_KEY

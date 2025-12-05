@@ -60,8 +60,7 @@ export default function TemplatesPage() {
       
       const data = await res.json()
       if (data.template) {
-        // Refetch all templates to ensure correct default status
-        await fetchTemplates()
+        setTemplates([...templates, data.template])
         setShowNewDialog(false)
         setNewTemplate({ name: '', content: '' })
         toast({ title: 'Success', description: 'Template created successfully' })
@@ -206,30 +205,25 @@ export default function TemplatesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-16">
-        <div className="text-center space-y-4">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 mx-auto animate-pulse">
-            <FolderOpen className="h-8 w-8 text-white" />
-          </div>
-          <p className="text-muted-foreground text-lg">Loading templates...</p>
-        </div>
+      <div className="flex items-center justify-center py-12">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">PRD Templates</h1>
-          <p className="text-muted-foreground text-xl">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">PRD Templates</h1>
+          <p className="text-muted-foreground text-lg">
             Manage your custom templates and set defaults
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => document.getElementById('file-upload')?.click()} className="shadow-sm">
+          <Button variant="outline" onClick={() => document.getElementById('file-upload')?.click()}>
             <FileText className="h-4 w-4 mr-2" />
-            Upload
+            Upload Template
           </Button>
           <input
             id="file-upload"
@@ -238,7 +232,7 @@ export default function TemplatesPage() {
             className="hidden"
             onChange={handleFileUpload}
           />
-          <Button onClick={() => setShowNewDialog(true)} className="shadow-sm">
+          <Button onClick={() => setShowNewDialog(true)}>
             <Plus className="h-4 w-4 mr-2" />
             New Template
           </Button>
@@ -246,18 +240,14 @@ export default function TemplatesPage() {
       </div>
 
       {templates.length === 0 ? (
-        <Card className="border-0 shadow-enterprise bg-white">
-          <CardContent className="p-16 text-center space-y-6">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-50 mx-auto">
-              <FolderOpen className="h-10 w-10 text-muted-foreground" />
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-2xl font-semibold">No templates yet</h3>
-              <p className="text-muted-foreground text-lg max-w-sm mx-auto">
-                Create your first template to get started
-              </p>
-            </div>
-            <Button onClick={() => setShowNewDialog(true)} size="lg" className="shadow-sm mt-4">
+        <Card>
+          <CardContent className="p-12 text-center">
+            <FolderOpen className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+            <h3 className="text-xl font-semibold mb-2">No templates yet</h3>
+            <p className="text-muted-foreground mb-6">
+              Create your first template to get started
+            </p>
+            <Button onClick={() => setShowNewDialog(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Create Template
             </Button>
@@ -266,74 +256,62 @@ export default function TemplatesPage() {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {templates.map((template) => (
-            <Card key={template.id} className="group relative hover-lift border-0 shadow-enterprise bg-white overflow-hidden">
+            <Card key={template.id} className="relative">
               {template.isDefault && (
-                <div className="absolute top-4 right-4 z-10">
-                  <div className="bg-gradient-to-r from-primary to-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center shadow-sm">
-                    <Star className="h-3 w-3 mr-1 fill-current" />
+                <div className="absolute top-4 right-4">
+                  <div className="bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs font-medium flex items-center">
+                    <Star className="h-3 w-3 mr-1" />
                     Default
                   </div>
                 </div>
               )}
-              <CardHeader className="space-y-3 pb-4">
-                <CardTitle className="pr-20 text-xl">{template.name}</CardTitle>
-                <CardDescription className="flex items-center gap-2 text-sm">
-                  {template.userId === 'system' ? (
-                    <>
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary"></div>
-                      System Template
-                    </>
-                  ) : (
-                    <>
-                      <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
-                      Custom Template
-                    </>
-                  )}
+              <CardHeader>
+                <CardTitle className="pr-20">{template.name}</CardTitle>
+                <CardDescription>
+                  {template.userId === 'system' ? 'System Template' : 'Custom Template'}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground line-clamp-3 leading-relaxed">
-                  {template.content.substring(0, 150)}...
-                </p>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadTemplate(template, 'md')}
-                    className="shadow-sm"
-                  >
-                    <Download className="h-3 w-3 mr-1.5" />
-                    MD
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadTemplate(template, 'docx')}
-                    className="shadow-sm"
-                  >
-                    <Download className="h-3 w-3 mr-1.5" />
-                    DOCX
-                  </Button>
-                  <Button
-                    variant={template.isDefault ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setAsDefault(template.id)}
-                    className="shadow-sm"
-                  >
-                    <Star className={`h-3 w-3 mr-1.5 ${template.isDefault ? 'fill-current' : ''}`} />
-                    {template.isDefault ? 'Default' : 'Set Default'}
-                  </Button>
-                  {template.name !== 'Comprehensive PRD Template' && (
+              <CardContent>
+                <div className="space-y-2">
+                  <p className="text-sm text-muted-foreground line-clamp-3">
+                    {template.content.substring(0, 150)}...
+                  </p>
+                  <div className="flex flex-wrap gap-2 pt-4">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => confirmDeleteTemplate(template.id)}
-                      className="shadow-sm hover:bg-destructive hover:text-white hover:border-destructive"
+                      onClick={() => downloadTemplate(template, 'md')}
                     >
-                      <Trash2 className="h-3 w-3 mr-1.5" />
-                      Delete
+                      <Download className="h-3 w-3 mr-1" />
+                      Download MD
                     </Button>
-                  )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadTemplate(template, 'docx')}
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      Download DOCX
+                    </Button>
+                    <Button
+                      variant={template.isDefault ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setAsDefault(template.id)}
+                    >
+                      <Star className="h-3 w-3 mr-1" />
+                      {template.isDefault ? 'Current Default' : 'Set as Default'}
+                    </Button>
+                    {template.name !== 'Comprehensive PRD Template' && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => confirmDeleteTemplate(template.id)}
+                      >
+                        <Trash2 className="h-3 w-3 mr-1" />
+                        Delete
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

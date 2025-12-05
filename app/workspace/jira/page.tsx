@@ -1,21 +1,18 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { Users, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkles } from 'lucide-react'
+import { Users, Send, Download, Loader2, Plus, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { FileUpload } from '@/components/FileUpload'
 
 export default function JiraAgentPage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
   
@@ -35,35 +32,10 @@ export default function JiraAgentPage() {
   })
   
   const [message, setMessage] = useState('')
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
-
-  const copyToClipboard = async (text: string, index: number) => {
-    try {
-      await navigator.clipboard.writeText(text)
-      setCopiedIndex(index)
-      setTimeout(() => setCopiedIndex(null), 2000)
-      toast({ title: 'Copied to clipboard' })
-    } catch (error) {
-      toast({ title: 'Failed to copy', variant: 'destructive' })
-    }
-  }
 
   useEffect(() => {
     fetchChats()
   }, [])
-
-  // Auto-select chat from query parameter
-  useEffect(() => {
-    const chatId = searchParams.get('chatId')
-    if (chatId && chats.length > 0) {
-      const chat = chats.find(c => c.id === chatId)
-      if (chat) {
-        setCurrentChat(chat)
-        // Clear the query parameter
-        router.replace('/workspace/jira', { scroll: false })
-      }
-    }
-  }, [searchParams, chats, router])
 
   useEffect(() => {
     scrollToBottom()
@@ -258,15 +230,15 @@ export default function JiraAgentPage() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Jira Agent</h1>
-          <p className="text-muted-foreground text-xl">
+        <div>
+          <h1 className="text-4xl font-bold mb-2">Jira Agent</h1>
+          <p className="text-muted-foreground text-lg">
             Generate user stories with acceptance criteria
           </p>
         </div>
-        <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm">
+        <Button onClick={() => setShowNewChatDialog(true)} size="lg">
           <Plus className="h-5 w-5 mr-2" />
           New User Story
         </Button>
@@ -274,26 +246,21 @@ export default function JiraAgentPage() {
 
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Chat List */}
-        <Card className="lg:col-span-1 border-0 shadow-enterprise bg-white">
-          <CardHeader className="border-b">
-            <CardTitle className="text-lg font-semibold">Your User Stories</CardTitle>
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle className="text-lg">Your User Stories</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 pt-4">
+          <CardContent className="space-y-2">
             {chats.length === 0 ? (
-              <div className="text-center py-8 space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 mx-auto">
-                  <Users className="h-6 w-6 text-muted-foreground" />
-                </div>
               <p className="text-sm text-muted-foreground">No user stories yet</p>
-              </div>
             ) : (
               chats.map((chat) => (
                 <div
                   key={chat.id}
-                  className={`relative group rounded-xl transition-all-smooth ${
+                  className={`relative group rounded-lg border transition-colors ${
                     currentChat?.id === chat.id
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'hover:bg-gray-50 border border-gray-100'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'hover:bg-accent'
                   }`}
                 >
                   <button
@@ -310,10 +277,10 @@ export default function JiraAgentPage() {
                       e.stopPropagation()
                       confirmDeleteChat(chat.id)
                     }}
-                    className="absolute right-2 top-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive hover:text-white rounded-lg"
+                    className="absolute right-2 top-3 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-destructive hover:text-destructive-foreground rounded"
                     title="Delete User Story"
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-4 w-4" />
                   </button>
                 </div>
               ))
@@ -322,26 +289,26 @@ export default function JiraAgentPage() {
         </Card>
 
         {/* Chat Area */}
-        <Card className="lg:col-span-3 border-0 shadow-enterprise bg-white">
+        <Card className="lg:col-span-3">
           {currentChat ? (
             <>
-              <CardHeader className="border-b bg-gray-50/50">
+              <CardHeader className="border-b">
                 <div className="flex items-center justify-between">
-                  <div className="space-y-1">
-                    <CardTitle className="text-xl">{currentChat.title}</CardTitle>
-                    <CardDescription className="text-sm">
+                  <div>
+                    <CardTitle>{currentChat.title}</CardTitle>
+                    <CardDescription>
                       {currentChat.messages.length} messages
                     </CardDescription>
                   </div>
                   {currentChat.messages.length > 0 && (
                     <div className="flex gap-2">
-                      <Button onClick={() => downloadUserStories('md')} variant="outline" size="sm" className="shadow-sm">
+                      <Button onClick={() => downloadUserStories('md')} variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-2" />
-                        MD
+                        Download MD
                       </Button>
-                      <Button onClick={() => downloadUserStories('docx')} variant="outline" size="sm" className="shadow-sm">
+                      <Button onClick={() => downloadUserStories('docx')} variant="outline" size="sm">
                         <Download className="h-4 w-4 mr-2" />
-                        DOCX
+                        Download DOCX
                       </Button>
                     </div>
                   )}
@@ -350,181 +317,74 @@ export default function JiraAgentPage() {
               <CardContent className="p-0">
                 <div className="h-[600px] flex flex-col">
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto bg-white">
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4">
                     {currentChat.messages.length === 0 ? (
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-center text-muted-foreground space-y-4 max-w-md px-4">
-                          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-purple-500/10 mx-auto">
-                            <Users className="h-8 w-8 text-primary" />
-                          </div>
-                          <div className="space-y-2">
-                            <p className="text-lg font-medium text-foreground">Start the conversation</p>
-                            <p className="text-sm">Describe your feature and I'll generate user stories with acceptance criteria.</p>
-                          </div>
-                        </div>
+                      <div className="text-center text-muted-foreground py-12">
+                        <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p>Start the conversation to generate user stories</p>
                       </div>
                     ) : (
-                      <div className="max-w-3xl mx-auto py-8 px-4">
-                        {currentChat.messages.map((msg: any, idx: number) => (
+                      currentChat.messages.map((msg: any, idx: number) => (
+                        <div
+                          key={idx}
+                          className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
                           <div
-                            key={idx}
-                            className={`group flex gap-4 mb-8 animate-fade-in ${
-                              msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                            className={`max-w-[80%] rounded-lg p-4 ${
+                              msg.role === 'user'
+                                ? 'bg-primary text-primary-foreground'
+                                : 'bg-muted'
                             }`}
                           >
-                            {/* Avatar */}
-                            <div className="flex-shrink-0">
-                              <div
-                                className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                                  msg.role === 'user'
-                                    ? 'bg-primary/10 text-primary'
-                                    : 'bg-gradient-to-br from-primary to-purple-600 text-white'
-                                }`}
-                              >
-                                {msg.role === 'user' ? (
-                                  <User className="h-4 w-4" />
-                                ) : (
-                                  <Sparkles className="h-4 w-4" />
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Message Content */}
-                            <div className={`flex-1 space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold">
-                                  {msg.role === 'user' ? 'You' : 'ProdInt AI'}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
-                              </div>
-                              
-                              {/* Message Text */}
-                              <div className={`prose prose-sm max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
-                                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
-                                  {msg.content}
-                                </p>
-                              </div>
-                              
-                              {/* Action Bar - Always visible for AI messages */}
-                              {msg.role === 'assistant' && (
-                                <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-                                  <button
-                                    onClick={() => copyToClipboard(msg.content, idx)}
-                                    className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
-                                    title="Copy message"
-                                  >
-                                    {copiedIndex === idx ? (
-                                      <>
-                                        <Check className="h-3.5 w-3.5 text-green-600" />
-                                        <span className="text-green-600">Copied</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Copy className="h-3.5 w-3.5" />
-                                        <span>Copy</span>
-                                      </>
-                                    )}
-                                  </button>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                        
-                        {/* Loading State */}
-                        {generating && (
-                          <div className="flex gap-4 mb-8 animate-fade-in">
-                            <div className="flex-shrink-0">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white">
-                                <Sparkles className="h-4 w-4" />
-                              </div>
-                            </div>
-                            <div className="flex-1 space-y-2">
-                              <span className="text-sm font-semibold">ProdInt AI</span>
-                              <div className="flex items-center gap-1 h-6">
-                                <div className="flex gap-1">
-                                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                            <p className="text-xs opacity-70 mt-2">
+                              {new Date(msg.timestamp).toLocaleTimeString()}
+                            </p>
                           </div>
                         </div>
+                      ))
+                    )}
+                    {generating && (
+                      <div className="flex justify-start">
+                        <div className="bg-muted rounded-lg p-4">
+                          <Loader2 className="h-5 w-5 animate-spin" />
                         </div>
                       </div>
                     )}
                     <div ref={messagesEndRef} />
-                      </div>
-                    )}
                   </div>
 
                   {/* Input */}
-                  <div className="border-t bg-gray-50/50 p-4">
-                    <div className="max-w-3xl mx-auto">
+                  <div className="border-t p-4">
                     <form
                       onSubmit={(e) => {
                         e.preventDefault()
                         sendMessage()
                       }}
-                        className="flex gap-3 items-end"
+                      className="flex gap-2"
                     >
-                        <div className="flex-1 relative">
-                          <Textarea
+                      <Input
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
-                            onKeyDown={(e) => {
-                              // Submit on Enter, but allow Shift+Enter for new line
-                              if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
-                                e.preventDefault()
-                                if (message.trim() && !generating) {
-                                  sendMessage()
-                                }
-                              }
-                            }}
                         placeholder="Ask for changes or provide more context..."
                         disabled={generating}
-                            className="min-h-[48px] max-h-[200px] resize-none shadow-sm border-gray-200 focus:border-primary"
-                            rows={1}
-                            style={{
-                              height: 'auto',
-                              overflowY: message.split('\n').length > 3 ? 'auto' : 'hidden'
-                            }}
-                            onInput={(e) => {
-                              const target = e.target as HTMLTextAreaElement
-                              target.style.height = 'auto'
-                              target.style.height = Math.min(target.scrollHeight, 200) + 'px'
-                            }}
-                          />
-                        </div>
-                        <Button 
-                          type="submit" 
-                          disabled={generating || !message.trim()} 
-                          size="lg"
-                          className="h-12 px-6 shadow-sm"
-                        >
+                      />
+                      <Button type="submit" disabled={generating || !message.trim()}>
                         <Send className="h-4 w-4" />
                       </Button>
                     </form>
-                      <p className="text-xs text-muted-foreground text-center mt-2">
-                        Press Enter to send, Shift+Enter for new line
-                      </p>
-                    </div>
                   </div>
                 </div>
               </CardContent>
             </>
           ) : (
-            <CardContent className="p-16 text-center space-y-6">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-50 mx-auto">
-                <Users className="h-10 w-10 text-muted-foreground" />
-              </div>
-              <div className="space-y-2">
-                <h3 className="text-2xl font-semibold">No user story selected</h3>
-                <p className="text-muted-foreground text-lg max-w-sm mx-auto">
+            <CardContent className="p-12 text-center">
+              <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+              <h3 className="text-xl font-semibold mb-2">No user story selected</h3>
+              <p className="text-muted-foreground mb-6">
                 Create a new user story or select an existing one to continue
               </p>
-              </div>
-              <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm mt-4">
+              <Button onClick={() => setShowNewChatDialog(true)}>
                 <Plus className="h-4 w-4 mr-2" />
                 Create New User Story
               </Button>
@@ -609,10 +469,7 @@ export default function JiraAgentPage() {
               >
                 Cancel
               </Button>
-              <Button 
-                onClick={createNewChat} 
-                disabled={loading || !newChatForm.context.trim()}
-              >
+              <Button onClick={createNewChat} disabled={loading}>
                 {loading ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />

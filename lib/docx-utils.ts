@@ -13,7 +13,6 @@ import {
   UnderlineType
 } from 'docx'
 import mammoth from 'mammoth'
-import HTMLtoDOCX from 'html-to-docx'
 
 /**
  * Parse inline markdown formatting (bold, italic, code, links, strikethrough)
@@ -130,183 +129,14 @@ async function htmlToDocx(html: string, title: string): Promise<Buffer> {
 
 /**
  * Main conversion function that handles both HTML and Markdown
- * Uses html-to-docx for better formatting preservation
  */
 export async function markdownToDocx(content: string, title: string): Promise<Buffer> {
-  try {
-    // Detect if content is HTML or Markdown
-    if (isHtmlContent(content)) {
-      // Use html-to-docx for HTML content to preserve all formatting
-      return await htmlToDocxAdvanced(content, title)
-    } else {
-      // Convert markdown to HTML first, then to DOCX
-      const htmlContent = markdownToHtml(content)
-      return await htmlToDocxAdvanced(htmlContent, title)
-    }
-  } catch (error) {
-    console.error('Error in markdownToDocx:', error)
-    // Fallback to internal conversion if html-to-docx fails
+  // Detect if content is HTML or Markdown
+  if (isHtmlContent(content)) {
+    return htmlToDocx(content, title)
+  } else {
     return markdownToDocxInternal(content, title)
   }
-}
-
-/**
- * Advanced HTML to DOCX conversion using html-to-docx library
- * This preserves fonts, colors, tables, images, and all formatting
- */
-async function htmlToDocxAdvanced(html: string, title: string): Promise<Buffer> {
-  try {
-    const buffer = await HTMLtoDOCX(html, null, {
-      title: title,
-      subject: title,
-      creator: 'ProdInt',
-      keywords: ['PRD', 'Product Requirements', 'Document'],
-      description: `Product Requirements Document: ${title}`,
-      font: 'Arial', // Default font, HTML styles will override
-      fontSize: 22, // 11pt default
-      margins: {
-        top: 1440, // 1 inch
-        right: 1440,
-        bottom: 1440,
-        left: 1440,
-      },
-      orientation: 'portrait',
-      table: {
-        row: {
-          cantSplit: false
-        }
-      }
-    })
-    
-    return Buffer.from(buffer)
-  } catch (error) {
-    console.error('Error in htmlToDocxAdvanced:', error)
-    throw error
-  }
-}
-
-/**
- * Convert Markdown to HTML while preserving structure
- * Enhanced to handle complex markdown better
- */
-function markdownToHtml(markdown: string): string {
-  let html = markdown
-  
-  // First, protect code blocks from being processed
-  const codeBlocks: string[] = []
-  html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
-    codeBlocks.push(code)
-    return `<<<CODE_BLOCK_${codeBlocks.length - 1}>>>`
-  })
-  
-  // Convert headings (must be done before other conversions)
-  html = html.replace(/^##### (.+)$/gm, '<h5 style="font-size: 14px; font-weight: bold; margin: 10px 0;">$1</h5>')
-  html = html.replace(/^#### (.+)$/gm, '<h4 style="font-size: 16px; font-weight: bold; margin: 12px 0;">$1</h4>')
-  html = html.replace(/^### (.+)$/gm, '<h3 style="font-size: 18px; font-weight: bold; margin: 14px 0;">$1</h3>')
-  html = html.replace(/^## (.+)$/gm, '<h2 style="font-size: 22px; font-weight: bold; margin: 16px 0;">$1</h2>')
-  html = html.replace(/^# (.+)$/gm, '<h1 style="font-size: 26px; font-weight: bold; margin: 18px 0;">$1</h1>')
-  
-  // Convert tables (before other conversions)
-  const tableRegex = /\n?\|(.+)\|[\r\n]+\|[-:| ]+\|[\r\n]+((?:\|.+\|[\r\n]*)+)/g
-  html = html.replace(tableRegex, (match, header, body) => {
-    const headerCells = header.split('|').filter((c: string) => c.trim()).map((cell: string) => cell.trim())
-    const bodyRows = body.trim().split('\n').filter((r: string) => r.trim()).map((row: string) => 
-      row.split('|').filter((c: string) => c.trim()).slice(0, headerCells.length).map((cell: string) => cell.trim())
-    )
-    
-    let table = '\n<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">\n'
-    table += '  <thead>\n    <tr style="background-color: #f2f2f2;">\n'
-    headerCells.forEach((cell: string) => {
-      table += `      <th style="padding: 10px; border: 1px solid #ddd; text-align: left; font-weight: bold;">${cell}</th>\n`
-    })
-    table += '    </tr>\n  </thead>\n'
-    table += '  <tbody>\n'
-    bodyRows.forEach((row: string[], idx: number) => {
-      const bgColor = idx % 2 === 0 ? '#ffffff' : '#f9f9f9'
-      table += `    <tr style="background-color: ${bgColor};">\n`
-      row.forEach((cell: string) => {
-        table += `      <td style="padding: 10px; border: 1px solid #ddd;">${cell}</td>\n`
-      })
-      table += '    </tr>\n'
-    })
-    table += '  </tbody>\n</table>\n'
-    
-    return table
-  })
-  
-  // Convert bold and italic (bold first to avoid conflicts)
-  html = html.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-  html = html.replace(/___(.+?)___/g, '<strong><em>$1</em></strong>')
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>')
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>')
-  html = html.replace(/_(.+?)_/g, '<em>$1</em>')
-  
-  // Convert strikethrough
-  html = html.replace(/~~(.+?)~~/g, '<s>$1</s>')
-  
-  // Convert inline code
-  html = html.replace(/`(.+?)`/g, '<code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace;">$1</code>')
-  
-  // Convert links
-  html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #0066cc; text-decoration: underline;">$1</a>')
-  
-  // Convert horizontal rules
-  html = html.replace(/^---+$/gm, '<hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">')
-  html = html.replace(/^\*\*\*+$/gm, '<hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">')
-  
-  // Convert unordered lists (with proper nesting)
-  const listLines = html.split('\n')
-  const processedLines: string[] = []
-  let inList = false
-  
-  for (let i = 0; i < listLines.length; i++) {
-    const line = listLines[i]
-    const listMatch = line.match(/^[\s]*([\*\-\+])\s+(.+)$/)
-    
-    if (listMatch) {
-      if (!inList) {
-        processedLines.push('<ul style="margin: 10px 0; padding-left: 30px;">')
-        inList = true
-      }
-      processedLines.push(`  <li style="margin: 5px 0;">${listMatch[2]}</li>`)
-    } else if (inList) {
-      processedLines.push('</ul>')
-      inList = false
-      processedLines.push(line)
-    } else {
-      processedLines.push(line)
-    }
-  }
-  if (inList) processedLines.push('</ul>')
-  html = processedLines.join('\n')
-  
-  // Convert ordered lists
-  html = html.replace(/^\d+\.\s+(.+)$/gm, '<li style="margin: 5px 0;">$1</li>')
-  html = html.replace(/(<li style="margin: 5px 0;">.*<\/li>\n?)+/g, '<ol style="margin: 10px 0; padding-left: 30px;">$&</ol>')
-  
-  // Restore code blocks with styling
-  codeBlocks.forEach((code, index) => {
-    html = html.replace(
-      `<<<CODE_BLOCK_${index}>>>`,
-      `<pre style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #ddd;"><code style="font-family: monospace; font-size: 13px;">${code.trim()}</code></pre>`
-    )
-  })
-  
-  // Convert paragraphs (lines that aren't already HTML tags)
-  const finalLines = html.split('\n')
-  html = finalLines.map(line => {
-    const trimmed = line.trim()
-    if (trimmed === '') return ''
-    if (trimmed.startsWith('<') || line.includes('</') || trimmed.includes('<') && trimmed.includes('>')) return line
-    return `<p style="margin: 10px 0; line-height: 1.6;">${line}</p>`
-  }).join('\n')
-  
-  // Clean up excessive whitespace
-  html = html.replace(/\n{3,}/g, '\n\n')
-  html = html.replace(/<p[^>]*><\/p>/g, '')
-  
-  return html
 }
 
 /**
@@ -683,11 +513,10 @@ function htmlToMarkdown(html: string): string {
 
 /**
  * Convert docx file to HTML with formatting preserved
- * This preserves ALL formatting including fonts, colors, sizes, tables, images
  */
 export async function docxToText(buffer: Buffer): Promise<string> {
   try {
-    // Convert DOCX to HTML with all formatting preserved including inline styles
+    // Convert DOCX to HTML with all formatting preserved
     const result = await mammoth.convertToHtml({ buffer }, {
       styleMap: [
         "p[style-name='Heading 1'] => h1:fresh",
@@ -696,33 +525,18 @@ export async function docxToText(buffer: Buffer): Promise<string> {
         "p[style-name='Heading 4'] => h4:fresh",
         "p[style-name='Heading 5'] => h5:fresh",
         "p[style-name='Heading 6'] => h6:fresh",
-        "p[style-name='Title'] => h1.title:fresh",
-        "p[style-name='Subtitle'] => h2.subtitle:fresh",
-        "p[style-name='Quote'] => blockquote:fresh",
       ],
-      includeDefaultStyleMap: true,
-      includeEmbeddedStyleMap: true,
       convertImage: mammoth.images.imgElement((image) => {
         return image.read("base64").then((imageBuffer) => {
           return {
             src: "data:" + image.contentType + ";base64," + imageBuffer
           }
         })
-      }),
-      // Preserve as much formatting as possible
-      preserveEmptyParagraphs: true,
+      })
     })
     
-    // Add a wrapper to ensure proper document structure
-    let html = result.value
-    
-    // If the HTML doesn't start with proper tags, wrap it
-    if (!html.trim().startsWith('<')) {
-      html = `<div>${html}</div>`
-    }
-    
     // Return HTML directly - preserves all formatting
-    return html
+    return result.value
   } catch (error) {
     console.error('Error converting docx to HTML:', error)
     throw new Error('Failed to convert docx file')

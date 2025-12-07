@@ -420,8 +420,8 @@ export default function RCAAgentPage() {
                     {currentChat.messages.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center text-muted-foreground space-y-4 max-w-md px-4">
-                          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-orange-500/10 to-red-500/10 mx-auto">
-                            <AlertTriangle className="h-8 w-8 text-orange-600" />
+                          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-purple-500/10 mx-auto">
+                            <AlertTriangle className="h-8 w-8 text-primary" />
                           </div>
                           <div className="space-y-2">
                             <p className="text-lg font-medium text-foreground">Start the conversation</p>
@@ -450,7 +450,7 @@ export default function RCAAgentPage() {
                                   className={`flex h-8 w-8 items-center justify-center rounded-lg ${
                                     msg.role === 'user'
                                       ? 'bg-primary/10 text-primary'
-                                      : 'bg-gradient-to-br from-orange-500 to-red-600 text-white'
+                                      : 'bg-gradient-to-br from-primary to-purple-600 text-white'
                                   }`}
                                 >
                                   {msg.role === 'user' ? (
@@ -468,7 +468,7 @@ export default function RCAAgentPage() {
                                     {msg.role === 'user' ? 'You' : 'ProdInt AI'}
                                   </span>
                                   {isRCAMessage && (
-                                    <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 font-medium">
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
                                       v{aiMessageIndex}
                                     </span>
                                   )}
@@ -541,7 +541,7 @@ export default function RCAAgentPage() {
                         {generating && (
                           <div className="flex gap-4 mb-8 animate-fade-in">
                             <div className="flex-shrink-0">
-                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-orange-500 to-red-600 text-white">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-purple-600 text-white">
                                 <Sparkles className="h-4 w-4" />
                               </div>
                             </div>
@@ -549,9 +549,9 @@ export default function RCAAgentPage() {
                               <span className="text-sm font-semibold">ProdInt AI</span>
                               <div className="flex items-center gap-1 h-6">
                                 <div className="flex gap-1">
-                                  <div className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                  <div className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                  <div className="w-2 h-2 bg-orange-500/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                  <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                                 </div>
                               </div>
                             </div>
@@ -586,7 +586,7 @@ export default function RCAAgentPage() {
                             }}
                             placeholder="Ask for changes or provide more context..."
                             disabled={generating}
-                            className="min-h-[48px] max-h-[200px] resize-none shadow-sm border-gray-200 focus:border-orange-500"
+                            className="min-h-[48px] max-h-[200px] resize-none shadow-sm border-gray-200 focus:border-primary"
                             rows={1}
                             style={{
                               height: 'auto',
@@ -603,7 +603,7 @@ export default function RCAAgentPage() {
                           type="submit" 
                           disabled={generating || !message.trim()} 
                           size="lg"
-                          className="h-12 px-6 shadow-sm bg-orange-600 hover:bg-orange-700"
+                          className="h-12 px-6 shadow-sm"
                         >
                           <Send className="h-4 w-4" />
                         </Button>
@@ -627,7 +627,7 @@ export default function RCAAgentPage() {
                   Create a new analysis or select an existing one to continue
                 </p>
               </div>
-              <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm mt-4 bg-orange-600 hover:bg-orange-700">
+              <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm mt-4">
                 <Plus className="h-4 w-4 mr-2" />
                 Create New Analysis
               </Button>
@@ -660,7 +660,7 @@ export default function RCAAgentPage() {
               <div
                 key={i}
                 className={`h-1.5 flex-1 rounded-full transition-colors ${
-                  i + 1 <= formStep ? 'bg-orange-500' : 'bg-gray-200'
+                  i + 1 <= formStep ? 'bg-primary' : 'bg-gray-200'
                 }`}
               />
             ))}
@@ -744,13 +744,13 @@ export default function RCAAgentPage() {
                       onClick={() => setNewChatForm({ ...newChatForm, rcaType: option.value as RCAType })}
                       className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
                         newChatForm.rcaType === option.value
-                          ? 'border-orange-500 bg-orange-50'
+                          ? 'border-primary bg-primary/5'
                           : 'border-gray-200 hover:border-gray-300'
                       }`}
                     >
                       <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 mt-0.5 ${
                         newChatForm.rcaType === option.value
-                          ? 'border-orange-500 bg-orange-500'
+                          ? 'border-primary bg-primary'
                           : 'border-gray-300'
                       }`}>
                         {newChatForm.rcaType === option.value && (
@@ -844,7 +844,6 @@ export default function RCAAgentPage() {
                   type="button"
                   onClick={() => setFormStep(formStep + 1)}
                   disabled={!canProceedToNextStep()}
-                  className="bg-orange-600 hover:bg-orange-700"
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -853,7 +852,6 @@ export default function RCAAgentPage() {
                 <Button 
                   onClick={createNewChat} 
                   disabled={loading || !newChatForm.errorLogs.trim()}
-                  className="bg-orange-600 hover:bg-orange-700"
                 >
                   {loading ? (
                     <>

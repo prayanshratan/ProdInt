@@ -51,17 +51,67 @@ export default function RCAAgentPage() {
   })
   
   const [message, setMessage] = useState('')
-  const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
-  const copyToClipboard = async (text: string, index: number) => {
+  const copyToClipboard = async (text: string, key: string) => {
     try {
       await navigator.clipboard.writeText(text)
-      setCopiedIndex(index)
-      setTimeout(() => setCopiedIndex(null), 2000)
+      setCopiedKey(key)
+      setTimeout(() => setCopiedKey(null), 2000)
       toast({ title: 'Copied to clipboard' })
     } catch (error) {
       toast({ title: 'Failed to copy', variant: 'destructive' })
     }
+  }
+
+  // Parse major document sections from combined AI response
+  // Only splits at top-level document headers, not internal --- separators
+  const parseMessageSections = (content: string): { title: string; content: string }[] => {
+    // Define the major section headers we want to split on
+    const majorHeaders = [
+      '# Error Analysis',
+      '# User-Facing RCA', 
+      '# Technical Engineering RCA'
+    ]
+    
+    // Find positions of major headers in the content
+    const headerPositions: { header: string; index: number }[] = []
+    for (const header of majorHeaders) {
+      const index = content.indexOf(header)
+      if (index !== -1) {
+        headerPositions.push({ header, index })
+      }
+    }
+    
+    // If no major headers found or only one section, return as single section
+    if (headerPositions.length <= 1) {
+      const titleMatch = content.match(/^#\s+(.+?)(?:\n|$)/m)
+      return [{ 
+        title: titleMatch ? titleMatch[1] : 'Analysis', 
+        content: content.trim() 
+      }]
+    }
+    
+    // Sort by position
+    headerPositions.sort((a, b) => a.index - b.index)
+    
+    // Extract each section
+    const sections: { title: string; content: string }[] = []
+    for (let i = 0; i < headerPositions.length; i++) {
+      const start = headerPositions[i].index
+      const end = i < headerPositions.length - 1 ? headerPositions[i + 1].index : content.length
+      
+      let sectionContent = content.substring(start, end).trim()
+      // Remove trailing --- separator if present
+      sectionContent = sectionContent.replace(/\n---\s*$/, '').trim()
+      
+      const titleMatch = sectionContent.match(/^#\s+(.+?)(?:\n|$)/)
+      const title = titleMatch ? titleMatch[1] : 'Section'
+      
+      sections.push({ title, content: sectionContent })
+    }
+    
+    return sections.filter(section => section.content.length > 0)
   }
 
   // Strip conversational preamble from AI responses
@@ -73,8 +123,10 @@ export default function RCAAgentPage() {
     return content
   }
 
-  const downloadMessage = async (content: string, format: 'md' | 'docx' = 'md', messageIndex: number) => {
-    const filename = `${currentChat.title}-v${messageIndex + 1}`
+  const downloadSection = async (content: string, format: 'md' | 'docx' = 'md', sectionTitle: string) => {
+    // Create filename from section title
+    const sanitizedTitle = sectionTitle.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-')
+    const filename = `${currentChat.title}-${sanitizedTitle}`
     const cleanContent = stripPreamble(content)
     
     if (format === 'docx') {
@@ -118,6 +170,55 @@ export default function RCAAgentPage() {
       URL.revokeObjectURL(url)
       
       toast({ title: 'Success', description: 'RCA downloaded as Markdown' })
+    }
+  }
+
+  // Keep legacy function for full message download
+  const downloadFullMessage = async (content: string, format: 'md' | 'docx' = 'md', messageIndex: number) => {
+    const filename = `${currentChat.title}-v${messageIndex + 1}`
+    const cleanContent = stripPreamble(content)
+    
+    if (format === 'docx') {
+      try {
+        const res = await fetch('/api/convert/markdown-to-docx', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            markdown: cleanContent,
+            title: filename,
+          }),
+        })
+        
+        if (res.ok) {
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${filename}.docx`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+          
+          toast({ title: 'Success', description: 'Downloaded as DOCX' })
+        } else {
+          toast({ title: 'Error', description: 'Failed to convert to DOCX', variant: 'destructive' })
+        }
+      } catch (error) {
+        toast({ title: 'Error', description: 'Failed to download DOCX', variant: 'destructive' })
+      }
+    } else {
+      const blob = new Blob([cleanContent], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${filename}.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+      
+      toast({ title: 'Success', description: 'Downloaded as Markdown' })
     }
   }
 
@@ -449,6 +550,10 @@ export default function RCAAgentPage() {
                             .filter((m: any) => m.role === 'assistant').length
                           const isRCAMessage = msg.role === 'assistant' && msg.content.length > 100
                           
+                          // Parse sections for AI messages with multiple parts
+                          const sections = msg.role === 'assistant' ? parseMessageSections(msg.content) : []
+                          const hasMultipleSections = sections.length > 1
+                          
                           return (
                             <div
                               key={idx}
@@ -489,7 +594,104 @@ export default function RCAAgentPage() {
                                   </span>
                                 </div>
                                 
-                                {/* Message Text */}
+                                {/* Message Text - Handle multiple sections */}
+                                {msg.role === 'assistant' && hasMultipleSections ? (
+                                  <div className="space-y-6">
+                                    {sections.map((section, sectionIdx) => {
+                                      const sectionKey = `${idx}-${sectionIdx}`
+                                      return (
+                                        <div key={sectionIdx} className="border border-gray-100 rounded-xl overflow-hidden">
+                                          {/* Section Content */}
+                                          <div className="p-4 bg-white">
+                                            <MarkdownRenderer content={section.content} />
+                                          </div>
+                                          
+                                          {/* Section Action Bar */}
+                                          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-t border-gray-100">
+                                            <span className="text-xs font-medium text-muted-foreground mr-2">
+                                              {section.title}
+                                            </span>
+                                            <div className="flex-1" />
+                                            <button
+                                              onClick={() => copyToClipboard(section.content, sectionKey)}
+                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-200 rounded-md transition-colors"
+                                              title={`Copy ${section.title}`}
+                                            >
+                                              {copiedKey === sectionKey ? (
+                                                <>
+                                                  <Check className="h-3.5 w-3.5 text-green-600" />
+                                                  <span className="text-green-600">Copied</span>
+                                                </>
+                                              ) : (
+                                                <>
+                                                  <Copy className="h-3.5 w-3.5" />
+                                                  <span>Copy</span>
+                                                </>
+                                              )}
+                                            </button>
+                                            <div className="w-px h-4 bg-gray-300" />
+                                            <button
+                                              onClick={() => downloadSection(section.content, 'md', section.title)}
+                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-200 rounded-md transition-colors"
+                                              title="Download as Markdown"
+                                            >
+                                              <Download className="h-3.5 w-3.5" />
+                                              <span>MD</span>
+                                            </button>
+                                            <button
+                                              onClick={() => downloadSection(section.content, 'docx', section.title)}
+                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-200 rounded-md transition-colors"
+                                              title="Download as DOCX"
+                                            >
+                                              <FileText className="h-3.5 w-3.5" />
+                                              <span>DOCX</span>
+                                            </button>
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                    
+                                    {/* Download All option */}
+                                    <div className="flex items-center justify-center gap-2 pt-2">
+                                      <span className="text-xs text-muted-foreground">Download all:</span>
+                                      <button
+                                        onClick={() => copyToClipboard(msg.content, `${idx}-all`)}
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                                        title="Copy all sections"
+                                      >
+                                        {copiedKey === `${idx}-all` ? (
+                                          <>
+                                            <Check className="h-3.5 w-3.5 text-green-600" />
+                                            <span className="text-green-600">Copied</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Copy className="h-3.5 w-3.5" />
+                                            <span>Copy All</span>
+                                          </>
+                                        )}
+                                      </button>
+                                      <button
+                                        onClick={() => downloadFullMessage(msg.content, 'md', aiMessageIndex)}
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                                        title="Download all as Markdown"
+                                      >
+                                        <Download className="h-3.5 w-3.5" />
+                                        <span>All MD</span>
+                                      </button>
+                                      <button
+                                        onClick={() => downloadFullMessage(msg.content, 'docx', aiMessageIndex)}
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                                        title="Download all as DOCX"
+                                      >
+                                        <FileText className="h-3.5 w-3.5" />
+                                        <span>All DOCX</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    {/* Single section or user message */}
                                 <div className={`max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
                                   {msg.role === 'assistant' ? (
                                     <MarkdownRenderer content={msg.content} />
@@ -500,15 +702,15 @@ export default function RCAAgentPage() {
                                   )}
                                 </div>
                                 
-                                {/* Action Bar */}
+                                    {/* Single Action Bar for non-sectioned AI messages */}
                                 {msg.role === 'assistant' && (
                                   <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
                                     <button
-                                      onClick={() => copyToClipboard(msg.content, idx)}
+                                          onClick={() => copyToClipboard(msg.content, `${idx}`)}
                                       className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
                                       title="Copy message"
                                     >
-                                      {copiedIndex === idx ? (
+                                          {copiedKey === `${idx}` ? (
                                         <>
                                           <Check className="h-3.5 w-3.5 text-green-600" />
                                           <span className="text-green-600">Copied</span>
@@ -525,7 +727,7 @@ export default function RCAAgentPage() {
                                       <>
                                         <div className="w-px h-4 bg-gray-200" />
                                         <button
-                                          onClick={() => downloadMessage(msg.content, 'md', aiMessageIndex)}
+                                              onClick={() => downloadFullMessage(msg.content, 'md', aiMessageIndex)}
                                           className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
                                           title="Download as Markdown"
                                         >
@@ -533,7 +735,7 @@ export default function RCAAgentPage() {
                                           <span>MD</span>
                                         </button>
                                         <button
-                                          onClick={() => downloadMessage(msg.content, 'docx', aiMessageIndex)}
+                                              onClick={() => downloadFullMessage(msg.content, 'docx', aiMessageIndex)}
                                           className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
                                           title="Download as DOCX"
                                         >
@@ -543,6 +745,8 @@ export default function RCAAgentPage() {
                                       </>
                                     )}
                                   </div>
+                                    )}
+                                  </>
                                 )}
                               </div>
                             </div>
@@ -748,37 +952,37 @@ export default function RCAAgentPage() {
             {formStep === 3 && (
               <div className="space-y-4">
                 <div className="space-y-1">
-                  <Label>What would you like to generate?</Label>
+                <Label>What would you like to generate?</Label>
                   <p className="text-sm text-muted-foreground">Select one or more options</p>
                 </div>
                 <div className="grid gap-3">
                   {rcaTypeOptions.map((option) => {
                     const isSelected = newChatForm.rcaTypes.includes(option.value)
                     return (
-                      <button
-                        key={option.value}
-                        type="button"
+                    <button
+                      key={option.value}
+                      type="button"
                         onClick={() => toggleRCAType(option.value)}
-                        className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                      className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
                           isSelected
                             ? 'border-primary bg-primary/5'
-                            : 'border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
                         <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 mt-0.5 ${
                           isSelected
                             ? 'border-primary bg-primary'
-                            : 'border-gray-300'
-                        }`}>
+                          : 'border-gray-300'
+                      }`}>
                           {isSelected && (
-                            <Check className="h-3 w-3 text-white" />
-                          )}
-                        </div>
-                        <div>
-                          <p className="font-medium">{option.label}</p>
-                          <p className="text-sm text-muted-foreground">{option.description}</p>
-                        </div>
-                      </button>
+                          <Check className="h-3 w-3 text-white" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium">{option.label}</p>
+                        <p className="text-sm text-muted-foreground">{option.description}</p>
+                      </div>
+                    </button>
                     )
                   })}
                 </div>

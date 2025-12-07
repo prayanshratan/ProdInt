@@ -36,7 +36,7 @@ export async function POST(request: Request) {
       message, 
       errorLogs, 
       additionalContext, 
-      rcaType,
+      rcaTypes, // Now an array: ['analysis', 'user-facing', 'technical']
       customUserFacingTemplate,
       customTechnicalTemplate 
     } = await request.json()
@@ -71,104 +71,61 @@ export async function POST(request: Request) {
     let aiResponse: string
     
     if (chat.messages.length === 0) {
-      // First message - generate based on rcaType
-      if (rcaType === 'analysis') {
-        // Error Analysis only
-        aiResponse = await generateErrorAnalysis(
-          user.apiKey,
-          errorLogs || '',
-          additionalContext || '',
-          []
+      // First message - generate based on rcaTypes array
+      const types: string[] = rcaTypes || ['analysis']
+      
+      if (!types.length) {
+        return NextResponse.json(
+          { error: 'Please select at least one analysis type' },
+          { status: 400 }
         )
-      } else if (rcaType === 'user-facing') {
-        // User-facing RCA only
-        const defaultTemplate = await getDefaultTemplate('user-facing')
-        aiResponse = await generateRCA(
-          user.apiKey,
-          errorLogs || '',
-          additionalContext || '',
-          'user-facing',
-          customUserFacingTemplate || null,
-          defaultTemplate,
-          []
-        )
-      } else if (rcaType === 'technical') {
-        // Technical Engineering RCA only
-        const defaultTemplate = await getDefaultTemplate('technical')
-        aiResponse = await generateRCA(
-          user.apiKey,
-          errorLogs || '',
-          additionalContext || '',
-          'technical',
-          customTechnicalTemplate || null,
-          defaultTemplate,
-          []
-        )
-      } else if (rcaType === 'both') {
-        // Both User-facing and Technical RCAs
-        const userFacingTemplate = await getDefaultTemplate('user-facing')
-        const technicalTemplate = await getDefaultTemplate('technical')
-        
-        const userFacingRCA = await generateRCA(
-          user.apiKey,
-          errorLogs || '',
-          additionalContext || '',
-          'user-facing',
-          customUserFacingTemplate || null,
-          userFacingTemplate,
-          []
-        )
-        
-        const technicalRCA = await generateRCA(
-          user.apiKey,
-          errorLogs || '',
-          additionalContext || '',
-          'technical',
-          customTechnicalTemplate || null,
-          technicalTemplate,
-          []
-        )
-        
-        aiResponse = `# User-Facing RCA\n\n${userFacingRCA}\n\n---\n\n# Technical Engineering RCA\n\n${technicalRCA}`
-      } else if (rcaType === 'all') {
-        // Error Analysis + Both RCAs
+      }
+      
+      const responseParts: string[] = []
+      
+      // Generate Error Analysis if selected
+      if (types.includes('analysis')) {
         const errorAnalysis = await generateErrorAnalysis(
           user.apiKey,
           errorLogs || '',
           additionalContext || '',
           []
         )
-        
-        const userFacingTemplate = await getDefaultTemplate('user-facing')
-        const technicalTemplate = await getDefaultTemplate('technical')
-        
+        responseParts.push(`# Error Analysis\n\n${errorAnalysis}`)
+      }
+      
+      // Generate User-Facing RCA if selected
+      if (types.includes('user-facing')) {
+        const defaultTemplate = await getDefaultTemplate('user-facing')
         const userFacingRCA = await generateRCA(
           user.apiKey,
           errorLogs || '',
           additionalContext || '',
           'user-facing',
           customUserFacingTemplate || null,
-          userFacingTemplate,
+          defaultTemplate,
           []
         )
-        
+        responseParts.push(`# User-Facing RCA\n\n${userFacingRCA}`)
+      }
+      
+      // Generate Technical RCA if selected
+      if (types.includes('technical')) {
+        const defaultTemplate = await getDefaultTemplate('technical')
         const technicalRCA = await generateRCA(
           user.apiKey,
           errorLogs || '',
           additionalContext || '',
           'technical',
           customTechnicalTemplate || null,
-          technicalTemplate,
+          defaultTemplate,
           []
         )
-        
-        aiResponse = `# Error Analysis\n\n${errorAnalysis}\n\n---\n\n# User-Facing RCA\n\n${userFacingRCA}\n\n---\n\n# Technical Engineering RCA\n\n${technicalRCA}`
-      } else {
-        return NextResponse.json(
-          { error: 'Invalid RCA type' },
-          { status: 400 }
-        )
+        responseParts.push(`# Technical Engineering RCA\n\n${technicalRCA}`)
       }
+      
+      // Combine all parts with separators
+      aiResponse = responseParts.join('\n\n---\n\n')
     } else {
       // Continue conversation
       aiResponse = await continueConversation(
@@ -176,7 +133,7 @@ export async function POST(request: Request) {
         'rca',
         message,
         chat.messages.map(m => ({ role: m.role, content: m.content })),
-        { rcaType: chat.rcaType }
+        { rcaTypes: chat.rcaTypes }
       )
     }
     
@@ -191,7 +148,7 @@ export async function POST(request: Request) {
     const updatedChat = await updateChat(chatId, {
       messages: newMessages,
       rcaDocument: aiResponse,
-      rcaType: rcaType || chat.rcaType,
+      rcaTypes: rcaTypes || chat.rcaTypes,
     })
     
     return NextResponse.json({ 

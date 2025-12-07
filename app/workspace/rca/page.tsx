@@ -14,13 +14,13 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { FileUpload } from '@/components/FileUpload'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
-type RCAType = 'analysis' | 'user-facing' | 'technical' | 'both' | 'all'
+type RCAOption = 'analysis' | 'user-facing' | 'technical'
 
 interface NewChatForm {
   title: string
   errorLogs: string
   additionalContext: string
-  rcaType: RCAType
+  rcaTypes: RCAOption[]
   customUserFacingTemplate: string
   customTechnicalTemplate: string
 }
@@ -45,7 +45,7 @@ export default function RCAAgentPage() {
     title: '',
     errorLogs: '',
     additionalContext: '',
-    rcaType: 'analysis',
+    rcaTypes: ['analysis'],
     customUserFacingTemplate: '',
     customTechnicalTemplate: '',
   })
@@ -163,7 +163,7 @@ export default function RCAAgentPage() {
       title: '',
       errorLogs: '',
       additionalContext: '',
-      rcaType: 'analysis',
+      rcaTypes: ['analysis'],
       customUserFacingTemplate: '',
       customTechnicalTemplate: '',
     })
@@ -174,8 +174,8 @@ export default function RCAAgentPage() {
     // Step 1: Title + Error Logs
     // Step 2: Additional Context  
     // Step 3: RCA Type Selection
-    // Step 4: Custom Template (only if RCA types selected)
-    const needsTemplateStep = ['user-facing', 'technical', 'both', 'all'].includes(newChatForm.rcaType)
+    // Step 4: Custom Template (only if user-facing or technical RCA types selected)
+    const needsTemplateStep = newChatForm.rcaTypes.includes('user-facing') || newChatForm.rcaTypes.includes('technical')
     return needsTemplateStep ? 4 : 3
   }
 
@@ -186,7 +186,7 @@ export default function RCAAgentPage() {
       case 2:
         return true // Additional context is optional
       case 3:
-        return newChatForm.rcaType
+        return newChatForm.rcaTypes.length > 0
       case 4:
         return true // Custom template is optional
       default:
@@ -217,9 +217,9 @@ export default function RCAAgentPage() {
         setChats([data.chat, ...chats])
         setShowNewChatDialog(false)
         
-        // Auto-generate RCA based on type
+        // Auto-generate RCA based on selected types
         await sendMessage(
-          `Analyze the following error logs and generate ${getRCATypeLabel(newChatForm.rcaType)}`,
+          `Analyze the following error logs and generate ${getRCATypesLabel(newChatForm.rcaTypes)}`,
           data.chat.id
         )
         
@@ -232,15 +232,16 @@ export default function RCAAgentPage() {
     }
   }
 
-  const getRCATypeLabel = (type: RCAType): string => {
-    switch (type) {
-      case 'analysis': return 'an error analysis'
-      case 'user-facing': return 'a user-facing RCA'
-      case 'technical': return 'a technical engineering RCA'
-      case 'both': return 'both user-facing and technical RCAs'
-      case 'all': return 'error analysis with both RCAs'
-      default: return 'an analysis'
-    }
+  const getRCATypesLabel = (types: RCAOption[]): string => {
+    const labels: string[] = []
+    if (types.includes('analysis')) labels.push('an error analysis')
+    if (types.includes('user-facing')) labels.push('a user-facing RCA')
+    if (types.includes('technical')) labels.push('a technical engineering RCA')
+    
+    if (labels.length === 0) return 'an analysis'
+    if (labels.length === 1) return labels[0]
+    if (labels.length === 2) return `${labels[0]} and ${labels[1]}`
+    return `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`
   }
 
   const sendMessage = async (msgText?: string, chatId?: string) => {
@@ -270,7 +271,7 @@ export default function RCAAgentPage() {
           ...(isInitialRequest && {
             errorLogs: newChatForm.errorLogs,
             additionalContext: newChatForm.additionalContext,
-            rcaType: newChatForm.rcaType,
+            rcaTypes: newChatForm.rcaTypes,
             customUserFacingTemplate: newChatForm.customUserFacingTemplate || null,
             customTechnicalTemplate: newChatForm.customTechnicalTemplate || null,
           }),
@@ -322,13 +323,24 @@ export default function RCAAgentPage() {
     }
   }
 
-  const rcaTypeOptions = [
+  const rcaTypeOptions: { value: RCAOption; label: string; description: string }[] = [
     { value: 'analysis', label: 'Error Analysis', description: 'Understand what went wrong and how to fix it' },
     { value: 'user-facing', label: 'User-Facing RCA', description: 'Customer-friendly incident report' },
     { value: 'technical', label: 'Technical RCA', description: 'Detailed engineering analysis' },
-    { value: 'both', label: 'Both RCAs', description: 'User-facing and technical RCAs' },
-    { value: 'all', label: 'Complete Analysis', description: 'Error analysis + both RCA documents' },
   ]
+
+  const toggleRCAType = (value: RCAOption) => {
+    const currentTypes = newChatForm.rcaTypes
+    if (currentTypes.includes(value)) {
+      // Remove if already selected (but keep at least one)
+      if (currentTypes.length > 1) {
+        setNewChatForm({ ...newChatForm, rcaTypes: currentTypes.filter(t => t !== value) })
+      }
+    } else {
+      // Add if not selected
+      setNewChatForm({ ...newChatForm, rcaTypes: [...currentTypes, value] })
+    }
+  }
 
   return (
     <div className="space-y-8">
@@ -732,37 +744,43 @@ export default function RCAAgentPage() {
               </div>
             )}
 
-            {/* Step 3: RCA Type Selection */}
+            {/* Step 3: RCA Type Selection - Multi-select */}
             {formStep === 3 && (
               <div className="space-y-4">
-                <Label>What would you like to generate?</Label>
+                <div className="space-y-1">
+                  <Label>What would you like to generate?</Label>
+                  <p className="text-sm text-muted-foreground">Select one or more options</p>
+                </div>
                 <div className="grid gap-3">
-                  {rcaTypeOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setNewChatForm({ ...newChatForm, rcaType: option.value as RCAType })}
-                      className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
-                        newChatForm.rcaType === option.value
-                          ? 'border-primary bg-primary/5'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                      <div className={`flex h-5 w-5 items-center justify-center rounded-full border-2 mt-0.5 ${
-                        newChatForm.rcaType === option.value
-                          ? 'border-primary bg-primary'
-                          : 'border-gray-300'
-                      }`}>
-                        {newChatForm.rcaType === option.value && (
-                          <Check className="h-3 w-3 text-white" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">{option.label}</p>
-                        <p className="text-sm text-muted-foreground">{option.description}</p>
-                      </div>
-                    </button>
-                  ))}
+                  {rcaTypeOptions.map((option) => {
+                    const isSelected = newChatForm.rcaTypes.includes(option.value)
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => toggleRCAType(option.value)}
+                        className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
+                          isSelected
+                            ? 'border-primary bg-primary/5'
+                            : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                      >
+                        <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 mt-0.5 ${
+                          isSelected
+                            ? 'border-primary bg-primary'
+                            : 'border-gray-300'
+                        }`}>
+                          {isSelected && (
+                            <Check className="h-3 w-3 text-white" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium">{option.label}</p>
+                          <p className="text-sm text-muted-foreground">{option.description}</p>
+                        </div>
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
             )}
@@ -774,7 +792,7 @@ export default function RCAAgentPage() {
                   Optionally provide your own RCA format. If left empty, default templates will be used.
                 </p>
 
-                {(newChatForm.rcaType === 'user-facing' || newChatForm.rcaType === 'both' || newChatForm.rcaType === 'all') && (
+                {newChatForm.rcaTypes.includes('user-facing') && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="userFacingTemplate">User-Facing RCA Format (Optional)</Label>
@@ -794,7 +812,7 @@ export default function RCAAgentPage() {
                   </div>
                 )}
 
-                {(newChatForm.rcaType === 'technical' || newChatForm.rcaType === 'both' || newChatForm.rcaType === 'all') && (
+                {newChatForm.rcaTypes.includes('technical') && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="technicalTemplate">Technical RCA Format (Optional)</Label>

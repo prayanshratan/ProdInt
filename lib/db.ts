@@ -42,11 +42,13 @@ export interface ChatMessage {
 export interface Chat {
   id: string
   userId: string
-  type: 'prd' | 'jira'
+  type: 'prd' | 'jira' | 'rca'
   title: string
   messages: ChatMessage[]
   templateId?: string
   prdDocument?: string
+  rcaDocument?: string
+  rcaType?: 'analysis' | 'user-facing' | 'technical' | 'both'
   createdAt: string
   updatedAt: string
 }

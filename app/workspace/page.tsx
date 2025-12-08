@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FileText, Users, Clock, ArrowRight, FolderOpen } from 'lucide-react'
+import { FileText, Users, Clock, ArrowRight, FolderOpen, AlertTriangle } from 'lucide-react'
 
 export default function WorkspacePage() {
   const router = useRouter()
@@ -25,7 +25,7 @@ export default function WorkspacePage() {
         setLoading(false)
       }
     }
-    
+
     fetchChats()
   }, [])
 
@@ -40,7 +40,7 @@ export default function WorkspacePage() {
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card 
+        <Card
           className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-white overflow-hidden"
           onClick={() => router.push('/workspace/prd')}
         >
@@ -60,7 +60,7 @@ export default function WorkspacePage() {
           </CardHeader>
         </Card>
 
-        <Card 
+        <Card
           className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-white overflow-hidden"
           onClick={() => router.push('/workspace/jira')}
         >
@@ -94,7 +94,7 @@ export default function WorkspacePage() {
                 Manage your custom templates and set defaults
               </CardDescription>
             </div>
-            <Button 
+            <Button
               onClick={() => router.push('/workspace/templates')}
               className="shadow-sm"
             >
@@ -161,6 +161,8 @@ export default function WorkspacePage() {
                     <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
                       {chat.type === 'prd' ? (
                         <FileText className="h-5 w-5" />
+                      ) : chat.type === 'rca' ? (
+                        <AlertTriangle className="h-5 w-5" />
                       ) : (
                         <Users className="h-5 w-5" />
                       )}

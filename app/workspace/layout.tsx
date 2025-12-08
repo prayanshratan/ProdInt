@@ -12,7 +12,8 @@ import {
   Settings, 
   Menu,
   X,
-  FolderOpen
+  FolderOpen,
+  AlertTriangle
 } from 'lucide-react'
 
 export default function WorkspaceLayout({
@@ -67,6 +68,7 @@ export default function WorkspaceLayout({
     { href: '/workspace', label: 'Dashboard', icon: Sparkles },
     { href: '/workspace/prd', label: 'PRD Agent', icon: FileText },
     { href: '/workspace/jira', label: 'Jira Agent', icon: Users },
+    { href: '/workspace/rca', label: 'RCA Agent', icon: AlertTriangle },
     { href: '/workspace/templates', label: 'Templates', icon: FolderOpen },
     { href: '/workspace/settings', label: 'Settings', icon: Settings },
   ]

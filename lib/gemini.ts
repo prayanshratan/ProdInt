@@ -162,12 +162,143 @@ If any information is missing, clearly indicate what additional information is n
   return response.text()
 }
 
+export async function generateErrorAnalysis(
+  apiKey: string | undefined,
+  errorLogs: string,
+  additionalContext: string,
+  conversationHistory: Array<{ role: string; content: string }>
+): Promise<string> {
+  const genAI = getGeminiClient(apiKey)
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+
+  const systemInstructions = getSystemInstructions()
+  
+  let prompt = `${systemInstructions}\n\n`
+  prompt += `You are an expert Software Engineer and DevOps specialist tasked with analyzing error logs.\n\n`
+  
+  prompt += `**CRITICAL RULES:**
+- ONLY analyze what is provided in the error logs and context
+- DO NOT hallucinate or make assumptions about things not present in the logs
+- If information is missing or unclear, explicitly state that
+- Provide actionable insights based ONLY on the given data
+- If you cannot determine something, say "Cannot determine from provided logs"
+
+**ERROR LOGS:**
+${errorLogs}
+
+`
+
+  if (additionalContext) {
+    prompt += `**ADDITIONAL CONTEXT:**
+${additionalContext}
+
+`
+  }
+  
+  if (conversationHistory.length > 0) {
+    prompt += `**Previous conversation:**\n`
+    conversationHistory.forEach(msg => {
+      prompt += `${msg.role}: ${msg.content}\n`
+    })
+    prompt += `\n`
+  }
+  
+  prompt += `**Please provide an error analysis with the following structure:**
+
+## Error Summary
+A brief overview of the errors found in the logs.
+
+## Error Breakdown
+For each distinct error found:
+- **Error Type:** [Type of error]
+- **Location:** [Where the error occurred, if identifiable]
+- **Error Message:** [The actual error message]
+- **Likely Cause:** [What probably caused this error based on the logs]
+
+## Root Cause Analysis
+Explain the underlying reason(s) for these errors based on the information provided.
+
+## Recommended Solutions
+Step-by-step recommendations to resolve these errors.
+
+## Prevention Tips
+How to prevent similar errors in the future.
+
+**Remember: Only use information from the provided logs and context. Do not invent details.**`
+
+  const result = await model.generateContent(prompt)
+  const response = await result.response
+  return response.text()
+}
+
+export async function generateRCA(
+  apiKey: string | undefined,
+  errorLogs: string,
+  additionalContext: string,
+  rcaType: 'user-facing' | 'technical',
+  customTemplate: string | null,
+  defaultTemplate: string,
+  conversationHistory: Array<{ role: string; content: string }>
+): Promise<string> {
+  const genAI = getGeminiClient(apiKey)
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+
+  const systemInstructions = getSystemInstructions()
+  const template = customTemplate || defaultTemplate
+  
+  let prompt = `${systemInstructions}\n\n`
+  
+  if (rcaType === 'user-facing') {
+    prompt += `You are an expert Technical Writer and Product Manager tasked with creating a User-Facing Root Cause Analysis (RCA) document.\n\n`
+    prompt += `The goal is to communicate the incident clearly to customers/stakeholders in a non-technical, empathetic manner.\n\n`
+  } else {
+    prompt += `You are an expert Site Reliability Engineer (SRE) and Software Architect tasked with creating a Technical Engineering RCA document.\n\n`
+    prompt += `The goal is to provide a detailed technical analysis for internal engineering teams.\n\n`
+  }
+  
+  prompt += `**CRITICAL RULES:**
+- ONLY use information from the provided error logs and context
+- DO NOT hallucinate or invent incident details, timelines, or metrics
+- If a section cannot be filled due to missing information, explicitly state: "[Information not available in provided logs]"
+- It is BETTER to leave sections blank than to make up information
+- Be factual and precise
+
+**RCA TEMPLATE TO FOLLOW:**
+${template}
+
+**ERROR LOGS TO ANALYZE:**
+${errorLogs}
+
+`
+
+  if (additionalContext) {
+    prompt += `**ADDITIONAL CONTEXT:**
+${additionalContext}
+
+`
+  }
+  
+  if (conversationHistory.length > 0) {
+    prompt += `**Previous conversation:**\n`
+    conversationHistory.forEach(msg => {
+      prompt += `${msg.role}: ${msg.content}\n`
+    })
+    prompt += `\n`
+  }
+  
+  prompt += `**Generate the RCA document following the template structure exactly. Fill in each section with information from the logs and context. For sections where information is not available, clearly indicate "[Information not available]" rather than making assumptions.**`
+
+  const result = await model.generateContent(prompt)
+  const response = await result.response
+  return response.text()
+}
+
 export async function continueConversation(
   apiKey: string | undefined,
-  conversationType: 'prd' | 'jira',
+  conversationType: 'prd' | 'jira' | 'rca',
   userMessage: string,
   conversationHistory: Array<{ role: string; content: string }>,
-  context?: { template?: string; onePager?: string; additionalContext?: string }
+  context?: { template?: string; onePager?: string; additionalContext?: string; rcaType?: string }
 ): Promise<string> {
   const genAI = getGeminiClient(apiKey)
   const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
@@ -198,6 +329,19 @@ export async function continueConversation(
 - Your output should be valid HTML that matches the previous formatting
 
 `
+    }
+  } else if (conversationType === 'rca') {
+    prompt += `You are an expert Site Reliability Engineer helping to refine a Root Cause Analysis (RCA) document.\n\n`
+    prompt += `**CRITICAL RULES:**
+- ONLY use information from the provided error logs and context
+- DO NOT hallucinate or invent details
+- If information is missing, clearly state it
+- Maintain the same document structure and format as the previous response
+- Be factual and precise
+
+`
+    if (context?.rcaType) {
+      prompt += `RCA Type: ${context.rcaType}\n\n`
     }
   } else {
     prompt += `You are an expert Product Manager helping to refine Jira user stories.\n\n`

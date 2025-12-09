@@ -2,21 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { useTheme } from 'next-themes'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
-import { Settings as SettingsIcon, Save, LogOut, Loader2, Key, User } from 'lucide-react'
+import { Settings as SettingsIcon, Save, LogOut, Loader2, Key, User, Sun, Moon, Laptop } from 'lucide-react'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { toast } = useToast()
-  
+  const { theme, setTheme } = useTheme()
+
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  
+
   const [formData, setFormData] = useState({
     name: '',
     company: '',
@@ -56,17 +58,17 @@ export default function SettingsPage() {
         company: formData.company,
         designation: formData.designation,
       }
-      
+
       if (formData.apiKey) {
         updates.apiKey = formData.apiKey
       }
-      
+
       const res = await fetch('/api/user/update', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates),
       })
-      
+
       if (res.ok) {
         toast({ title: 'Success', description: 'Settings saved successfully' })
         await fetchUser()
@@ -111,10 +113,63 @@ export default function SettingsPage() {
         <p className="text-muted-foreground text-xl">
           Manage your account and preferences
         </p>
+
       </div>
 
+      {/* Appearance Settings */}
+      <Card className="border-0 shadow-enterprise bg-card">
+        <CardHeader className="border-b">
+          <div className="flex items-center space-x-2">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <Sun className="h-5 w-5 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
+              <Moon className="absolute h-5 w-5 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">Appearance</CardTitle>
+              <CardDescription>
+                Customize how the application looks
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-3 gap-4">
+            <button
+              onClick={() => setTheme('light')}
+              className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-muted/50 transition-all ${theme === 'light' ? 'border-primary bg-primary/5' : 'border-muted bg-transparent'
+                }`}
+            >
+              <div className="mb-2 rounded-full bg-white p-2 shadow-sm border">
+                <Sun className="h-6 w-6 text-orange-500" />
+              </div>
+              <span className="text-sm font-medium">Light</span>
+            </button>
+            <button
+              onClick={() => setTheme('dark')}
+              className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-muted/50 transition-all ${theme === 'dark' ? 'border-primary bg-primary/5' : 'border-muted bg-transparent'
+                }`}
+            >
+              <div className="mb-2 rounded-full bg-slate-950 p-2 shadow-sm border border-slate-800">
+                <Moon className="h-6 w-6 text-blue-400" />
+              </div>
+              <span className="text-sm font-medium">Dark</span>
+            </button>
+            <button
+              onClick={() => setTheme('system')}
+              className={`flex flex-col items-center justify-between rounded-xl border-2 p-4 hover:bg-muted/50 transition-all ${theme === 'system' ? 'border-primary bg-primary/5' : 'border-muted bg-transparent'
+                }`}
+            >
+              <div className="mb-2 rounded-full bg-slate-100 dark:bg-slate-800 p-2 shadow-sm border">
+                <Laptop className="h-6 w-6 text-slate-600 dark:text-slate-400" />
+              </div>
+              <span className="text-sm font-medium">System</span>
+            </button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Profile Settings */}
-      <Card className="border-0 shadow-enterprise bg-white">
+      <Card className="border-0 shadow-enterprise bg-card">
         <CardHeader className="border-b">
           <div className="flex items-center space-x-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -145,7 +200,7 @@ export default function SettingsPage() {
               id="email"
               value={user?.email || ''}
               disabled
-              className="bg-gray-50 h-11"
+              className="bg-muted/50 h-11"
             />
             <p className="text-xs text-muted-foreground">
               Email cannot be changed
@@ -177,7 +232,7 @@ export default function SettingsPage() {
       </Card>
 
       {/* API Key Settings */}
-      <Card className="border-0 shadow-enterprise bg-white">
+      <Card className="border-0 shadow-enterprise bg-card">
         <CardHeader className="border-b">
           <div className="flex items-center space-x-2">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -203,13 +258,13 @@ export default function SettingsPage() {
               className="h-11"
             />
             <p className="text-xs text-muted-foreground">
-              {user?.hasApiKey 
+              {user?.hasApiKey
                 ? 'You have an API key configured. Leave blank to keep the current key.'
                 : 'No API key configured. Using default key.'}
             </p>
-            <a 
-              href="https://aistudio.google.com/app/apikey" 
-              target="_blank" 
+            <a
+              href="https://aistudio.google.com/app/apikey"
+              target="_blank"
               rel="noopener noreferrer"
               className="text-xs text-primary hover:underline inline-block font-medium transition-colors"
             >
@@ -254,7 +309,7 @@ export default function SettingsPage() {
           <LogOut className="h-4 w-4 mr-2" />
           Logout
         </Button>
-        
+
         <Button
           onClick={handleSave}
           disabled={saving}

@@ -41,7 +41,7 @@ export default function WorkspacePage() {
       {/* Quick Actions */}
       <div className="grid md:grid-cols-2 gap-6">
         <Card
-          className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-white overflow-hidden"
+          className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-card overflow-hidden"
           onClick={() => router.push('/workspace/prd')}
         >
           <CardHeader className="space-y-6 pb-8">
@@ -61,7 +61,7 @@ export default function WorkspacePage() {
         </Card>
 
         <Card
-          className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-white overflow-hidden"
+          className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-card overflow-hidden"
           onClick={() => router.push('/workspace/jira')}
         >
           <CardHeader className="space-y-6 pb-8">
@@ -82,7 +82,7 @@ export default function WorkspacePage() {
       </div>
 
       {/* Templates Section */}
-      <Card className="border-0 shadow-enterprise bg-white">
+      <Card className="border-0 shadow-enterprise bg-card">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="space-y-2">
@@ -106,7 +106,7 @@ export default function WorkspacePage() {
       </Card>
 
       {/* Recent Activity */}
-      <Card className="border-0 shadow-enterprise bg-white">
+      <Card className="border-0 shadow-enterprise bg-card">
         <CardHeader>
           <div className="space-y-2">
             <CardTitle className="text-xl flex items-center gap-2">
@@ -130,7 +130,7 @@ export default function WorkspacePage() {
             </div>
           ) : chats.length === 0 ? (
             <div className="text-center py-12 space-y-6">
-              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gray-50 mx-auto">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 mx-auto">
                 <FileText className="h-8 w-8 text-muted-foreground" />
               </div>
               <div className="space-y-2">
@@ -154,7 +154,7 @@ export default function WorkspacePage() {
               {chats.map((chat) => (
                 <div
                   key={chat.id}
-                  className="group flex items-center justify-between p-4 rounded-xl border border-gray-100 hover:border-primary/20 hover:bg-gray-50 cursor-pointer transition-all-smooth"
+                  className="group flex items-center justify-between p-4 rounded-xl border border-border hover:border-primary/20 hover:bg-muted/50 cursor-pointer transition-all-smooth"
                   onClick={() => router.push(`/workspace/${chat.type}?chatId=${chat.id}`)}
                 >
                   <div className="flex items-center space-x-4">

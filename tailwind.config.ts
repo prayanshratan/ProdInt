@@ -18,6 +18,9 @@ const config = {
       },
     },
     extend: {
+      textColor: {
+        primary: "hsl(var(--text-primary))",
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -26,7 +29,7 @@ const config = {
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          foreground: "hsl(0 0% 100%)",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",

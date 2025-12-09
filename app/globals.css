@@ -1,7 +1,7 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
- 
+
 @layer base {
   :root {
     /* Enterprise color scheme inspired by Anthropic/OpenAI */
@@ -10,200 +10,223 @@
 
     --card: 0 0% 100%;
     --card-foreground: 240 10% 3.9%;
- 
+
     --popover: 0 0% 100%;
     --popover-foreground: 240 10% 3.9%;
- 
-    /* Primary: Sophisticated purple/blue */
-    --primary: 262 80% 50%;
-    --primary-foreground: 0 0% 100%;
- 
+
+    /* Primary: Sophisticated purple/blue - Darkened for better white text contrast */
+    --primary: 263.4 70% 50.4%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Text Primary: Standard purple in light mode */
+    --text-primary: 262 80% 50%;
+
     --secondary: 240 4.8% 95.9%;
     --secondary-foreground: 240 5.9% 10%;
- 
+
     --muted: 240 4.8% 95.9%;
     --muted-foreground: 240 3.8% 46.1%;
- 
+
     --accent: 240 4.8% 95.9%;
     --accent-foreground: 240 5.9% 10%;
- 
+
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
 
     --border: 240 5.9% 90%;
     --input: 240 5.9% 90%;
     --ring: 262 80% 50%;
- 
+
     --radius: 0.75rem;
-    
+
     /* Custom enterprise colors */
     --enterprise-gradient-from: 262 80% 50%;
     --enterprise-gradient-to: 252 70% 60%;
     --surface-elevated: 0 0% 98%;
   }
- 
+
   .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
- 
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
- 
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
- 
-    --primary: 262 80% 50%;
+    /* Slate-950 base for softer dark theme */
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    /* Slate-900 for cards - visible contrast against background */
+    --card: 222.2 84% 6.5%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary: Back to purple for UI elements (Tiles, CTA) */
+    --primary: 263.4 70% 50.4%;
     --primary-foreground: 0 0% 100%;
- 
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
- 
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
- 
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
- 
+
+    /* Text Primary: White for icons/text in dark mode to avoid neon look */
+    --text-primary: 0 0% 100%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
- 
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 262 80% 50%;
-    
-    --surface-elevated: 240 5% 8%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 263.4 70% 50.4%;
+
+    --surface-elevated: 222.2 84% 9.5%;
   }
 }
- 
+
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground transition-colors duration-300;
     font-feature-settings: "rlig" 1, "calt" 1;
   }
-  
+
   /* Enhanced typography */
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     @apply font-semibold tracking-tight;
   }
-  
+
   h1 {
     @apply text-4xl lg:text-5xl;
   }
-  
+
   h2 {
     @apply text-3xl lg:text-4xl;
   }
-  
+
   h3 {
     @apply text-2xl lg:text-3xl;
   }
 }
 
 @layer components {
+
   /* Enterprise gradient backgrounds */
   .gradient-primary {
     background: linear-gradient(135deg, hsl(var(--enterprise-gradient-from)), hsl(var(--enterprise-gradient-to)));
   }
-  
+
   .gradient-mesh {
-    background: 
+    background:
       radial-gradient(at 40% 20%, hsla(262, 80%, 50%, 0.15) 0px, transparent 50%),
       radial-gradient(at 80% 0%, hsla(252, 70%, 60%, 0.15) 0px, transparent 50%),
       radial-gradient(at 0% 50%, hsla(262, 80%, 50%, 0.1) 0px, transparent 50%);
   }
-  
+
   /* Glass morphism effect */
   .glass-card {
     @apply backdrop-blur-xl bg-white/80 dark:bg-gray-900/80 border border-gray-200/50 dark:border-gray-800/50;
   }
-  
+
   /* Smooth transitions */
   .transition-all-smooth {
     @apply transition-all duration-300 ease-out;
   }
-  
+
   /* Enhanced shadows */
   .shadow-enterprise {
     box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   }
-  
+
   .shadow-enterprise-lg {
     box-shadow: 0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
   }
 }
 
 @layer utilities {
+
   /* Animations */
   @keyframes fade-in {
     from {
       opacity: 0;
       transform: translateY(10px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-  
+
   @keyframes fade-in-up {
     from {
       opacity: 0;
       transform: translateY(20px);
     }
+
     to {
       opacity: 1;
       transform: translateY(0);
     }
   }
-  
+
   @keyframes scale-in {
     from {
       opacity: 0;
       transform: scale(0.95);
     }
+
     to {
       opacity: 1;
       transform: scale(1);
     }
   }
-  
+
   .animate-fade-in {
     animation: fade-in 0.5s ease-out;
   }
-  
+
   .animate-fade-in-up {
     animation: fade-in-up 0.6s ease-out;
   }
-  
+
   .animate-scale-in {
     animation: scale-in 0.3s ease-out;
   }
-  
+
   /* Typing indicator animation */
   @keyframes bounce {
-    0%, 60%, 100% {
+
+    0%,
+    60%,
+    100% {
       transform: translateY(0);
     }
+
     30% {
       transform: translateY(-10px);
     }
   }
-  
+
   /* Hover effects */
   .hover-lift {
     @apply transition-all-smooth hover:shadow-enterprise-lg hover:-translate-y-1;
   }
-  
+
   /* Chat message styling */
   .prose {
     @apply text-foreground;
   }
-  
+
   .prose p {
     @apply leading-relaxed;
   }
 }
-

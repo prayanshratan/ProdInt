@@ -24,31 +24,31 @@ export default function LandingPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
+
     try {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(loginData),
       })
-      
+
       const data = await res.json()
-      
+
       if (res.ok) {
         toast({ title: 'Welcome back!', description: 'Login successful.' })
         router.push('/workspace')
       } else {
-        toast({ 
-          title: 'Login failed', 
+        toast({
+          title: 'Login failed',
           description: data.error || 'Invalid credentials',
-          variant: 'destructive' 
+          variant: 'destructive'
         })
       }
     } catch (error) {
-      toast({ 
-        title: 'Error', 
+      toast({
+        title: 'Error',
         description: 'Something went wrong. Please try again.',
-        variant: 'destructive' 
+        variant: 'destructive'
       })
     } finally {
       setLoading(false)
@@ -58,14 +58,14 @@ export default function LandingPage() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
-    
+
     try {
       // Check if personal email
       const email = signupData.email?.toLowerCase() || ''
-      const isPersonal = email.includes('@gmail.') || email.includes('@yahoo.') || 
-                         email.includes('@hotmail.') || email.includes('@outlook.') ||
-                         email.includes('@icloud.') || email.includes('@aol.')
-      
+      const isPersonal = email.includes('@gmail.') || email.includes('@yahoo.') ||
+        email.includes('@hotmail.') || email.includes('@outlook.') ||
+        email.includes('@icloud.') || email.includes('@aol.')
+
       if (isPersonal) {
         setLoading(false)
         setShowPersonalEmailWarning(true)
@@ -78,24 +78,24 @@ export default function LandingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signupData),
       })
-      
+
       const data = await res.json()
-      
+
       if (res.ok) {
         toast({ title: 'Account created!', description: 'Please complete your onboarding.' })
         router.push('/onboarding')
       } else {
-        toast({ 
-          title: 'Signup failed', 
+        toast({
+          title: 'Signup failed',
           description: data.error || 'Could not create account',
-          variant: 'destructive' 
+          variant: 'destructive'
         })
       }
     } catch (error) {
-      toast({ 
-        title: 'Error', 
+      toast({
+        title: 'Error',
         description: 'Something went wrong. Please try again.',
-        variant: 'destructive' 
+        variant: 'destructive'
       })
     } finally {
       setLoading(false)
@@ -105,31 +105,31 @@ export default function LandingPage() {
   const handlePersonalEmailContinue = async () => {
     setLoading(true)
     setShowPersonalEmailWarning(false)
-    
+
     try {
       const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(signupData),
       })
-      
+
       const data = await res.json()
-      
+
       if (res.ok) {
         toast({ title: 'Account created!', description: 'Please complete your onboarding.' })
         router.push('/onboarding')
       } else {
-        toast({ 
-          title: 'Signup failed', 
+        toast({
+          title: 'Signup failed',
           description: data.error || 'Could not create account',
-          variant: 'destructive' 
+          variant: 'destructive'
         })
       }
     } catch (error) {
-      toast({ 
-        title: 'Error', 
+      toast({
+        title: 'Error',
         description: 'Something went wrong. Please try again.',
-        variant: 'destructive' 
+        variant: 'destructive'
       })
     } finally {
       setLoading(false)
@@ -138,7 +138,7 @@ export default function LandingPage() {
 
   if (showLogin) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="absolute inset-0 gradient-mesh"></div>
         <Card className="relative w-full max-w-md mx-4 border-0 shadow-enterprise-lg animate-scale-in">
           <CardHeader className="space-y-3 pb-6">
@@ -182,9 +182,9 @@ export default function LandingPage() {
                 Don&apos;t have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => { 
-                    setShowLogin(false); 
-                    setShowSignup(true); 
+                  onClick={() => {
+                    setShowLogin(false);
+                    setShowSignup(true);
                     setShowPersonalEmailWarning(false);
                   }}
                   className="text-primary hover:underline font-medium"
@@ -195,9 +195,9 @@ export default function LandingPage() {
               <div className="text-center text-sm">
                 <button
                   type="button"
-                  onClick={() => { 
-                    setShowLogin(false); 
-                    setShowSignup(false); 
+                  onClick={() => {
+                    setShowLogin(false);
+                    setShowSignup(false);
                     setShowPersonalEmailWarning(false);
                   }}
                   className="text-muted-foreground hover:text-foreground transition-colors"
@@ -214,7 +214,7 @@ export default function LandingPage() {
 
   if (showSignup) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="absolute inset-0 gradient-mesh"></div>
         <Card className="relative w-full max-w-md mx-4 border-0 shadow-enterprise-lg animate-scale-in">
           <CardHeader className="space-y-3 pb-6">
@@ -272,9 +272,9 @@ export default function LandingPage() {
                 Already have an account?{' '}
                 <button
                   type="button"
-                  onClick={() => { 
-                    setShowSignup(false); 
-                    setShowLogin(true); 
+                  onClick={() => {
+                    setShowSignup(false);
+                    setShowLogin(true);
                     setShowPersonalEmailWarning(false);
                   }}
                   className="text-primary hover:underline font-medium"
@@ -285,9 +285,9 @@ export default function LandingPage() {
               <div className="text-center text-sm">
                 <button
                   type="button"
-                  onClick={() => { 
-                    setShowLogin(false); 
-                    setShowSignup(false); 
+                  onClick={() => {
+                    setShowLogin(false);
+                    setShowSignup(false);
                     setShowPersonalEmailWarning(false);
                   }}
                   className="text-muted-foreground hover:text-foreground transition-colors"
@@ -309,10 +309,10 @@ export default function LandingPage() {
               </DialogTitle>
               <DialogDescription className="space-y-3 pt-2">
                 <p>
-                  We noticed you&apos;re using a personal email address ({signupData.email}). 
+                  We noticed you&apos;re using a personal email address ({signupData.email}).
                 </p>
                 <p>
-                  For the best team collaboration experience, we recommend using your work email. 
+                  For the best team collaboration experience, we recommend using your work email.
                   This helps with:
                 </p>
                 <ul className="list-disc pl-6 space-y-1 text-sm">
@@ -350,9 +350,9 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="border-b bg-white/95 backdrop-blur-md sticky top-0 z-50">
+      <nav className="border-b bg-background/95 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-3">
@@ -362,16 +362,16 @@ export default function LandingPage() {
               <span className="text-xl font-semibold tracking-tight">ProdInt</span>
             </div>
             <div className="flex items-center space-x-3">
-              <Button 
-                type="button" 
-                variant="ghost" 
+              <Button
+                type="button"
+                variant="ghost"
                 onClick={() => setShowLogin(true)}
                 className="text-sm font-medium"
               >
                 Sign in
               </Button>
-              <Button 
-                type="button" 
+              <Button
+                type="button"
                 onClick={() => setShowSignup(true)}
                 className="text-sm font-medium shadow-sm hover:shadow-md transition-shadow"
               >
@@ -398,14 +398,14 @@ export default function LandingPage() {
               </span>
             </h1>
             <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              AI-powered assistant that helps product managers create comprehensive PRDs, 
+              AI-powered assistant that helps product managers create comprehensive PRDs,
               user stories, and documentation in minutes, not hours.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6">
-              <Button 
-                type="button" 
-                size="lg" 
-                onClick={() => setShowSignup(true)} 
+              <Button
+                type="button"
+                size="lg"
+                onClick={() => setShowSignup(true)}
                 className="text-base px-8 h-12 shadow-lg hover:shadow-xl transition-all"
               >
                 Start for free
@@ -429,7 +429,7 @@ export default function LandingPage() {
             Powerful features designed for modern product teams
           </p>
         </div>
-        
+
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto">
           <Card className="group hover-lift border-0 shadow-enterprise hover:shadow-enterprise-lg">
             <CardHeader className="space-y-4">
@@ -438,7 +438,7 @@ export default function LandingPage() {
               </div>
               <CardTitle className="text-xl">PRD Generation</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Create comprehensive Product Requirements Documents using AI, 
+                Create comprehensive Product Requirements Documents using AI,
                 customizable templates, and best practices.
               </CardDescription>
             </CardHeader>
@@ -451,7 +451,7 @@ export default function LandingPage() {
               </div>
               <CardTitle className="text-xl">User Story Creation</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Generate Jira-ready user stories with acceptance criteria 
+                Generate Jira-ready user stories with acceptance criteria
                 in the perfect format for your team.
               </CardDescription>
             </CardHeader>
@@ -476,7 +476,7 @@ export default function LandingPage() {
               </div>
               <CardTitle className="text-xl">Save Hours Weekly</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Reduce documentation time by 80%. Focus on strategy 
+                Reduce documentation time by 80%. Focus on strategy
                 while AI handles the heavy lifting.
               </CardDescription>
             </CardHeader>
@@ -501,7 +501,7 @@ export default function LandingPage() {
               </div>
               <CardTitle className="text-xl">Template Management</CardTitle>
               <CardDescription className="text-base leading-relaxed">
-                Upload custom templates, manage multiple formats, 
+                Upload custom templates, manage multiple formats,
                 and maintain consistency across all documents.
               </CardDescription>
             </CardHeader>
@@ -523,12 +523,12 @@ export default function LandingPage() {
                 Join product teams who are shipping faster and building better with ProdInt.
               </CardDescription>
               <div className="pt-4">
-                <Button 
+                <Button
                   type="button"
-                  size="lg" 
+                  size="lg"
                   variant="secondary"
                   onClick={() => setShowSignup(true)}
-                  className="text-base px-8 h-12 bg-white text-primary hover:bg-white/90 shadow-lg hover:shadow-xl transition-all font-medium"
+                  className="text-base px-8 h-12 bg-background text-primary hover:bg-background/90 shadow-lg hover:shadow-xl transition-all font-medium"
                 >
                   Get started for free
                   <ArrowRight className="ml-2 h-5 w-5" />
@@ -540,7 +540,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-gray-50/50">
+      <footer className="border-t bg-muted/30">
         <div className="container mx-auto px-6 lg:px-8 py-12">
           <div className="flex flex-col md:flex-row justify-between items-center gap-6">
             <div className="flex items-center space-x-3">
@@ -551,9 +551,9 @@ export default function LandingPage() {
             </div>
             <div className="text-sm text-muted-foreground text-center">
               Built by{' '}
-              <a 
-                href="https://www.linkedin.com/in/prayanshratan/" 
-                target="_blank" 
+              <a
+                href="https://www.linkedin.com/in/prayanshratan/"
+                target="_blank"
                 rel="noopener noreferrer"
                 className="text-primary hover:underline font-medium transition-colors"
               >

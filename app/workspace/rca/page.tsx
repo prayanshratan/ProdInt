@@ -30,7 +30,7 @@ export default function RCAAgentPage() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  
+
   const [showNewChatDialog, setShowNewChatDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [chatToDelete, setChatToDelete] = useState<string | null>(null)
@@ -38,7 +38,7 @@ export default function RCAAgentPage() {
   const [currentChat, setCurrentChat] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
-  
+
   // Multi-step form state
   const [formStep, setFormStep] = useState(1)
   const [newChatForm, setNewChatForm] = useState<NewChatForm>({
@@ -49,7 +49,7 @@ export default function RCAAgentPage() {
     customUserFacingTemplate: '',
     customTechnicalTemplate: '',
   })
-  
+
   const [message, setMessage] = useState('')
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
@@ -70,10 +70,10 @@ export default function RCAAgentPage() {
     // Define the major section headers we want to split on
     const majorHeaders = [
       '# Error Analysis',
-      '# User-Facing RCA', 
+      '# User-Facing RCA',
       '# Technical Engineering RCA'
     ]
-    
+
     // Find positions of major headers in the content
     const headerPositions: { header: string; index: number }[] = []
     for (const header of majorHeaders) {
@@ -82,35 +82,35 @@ export default function RCAAgentPage() {
         headerPositions.push({ header, index })
       }
     }
-    
+
     // If no major headers found or only one section, return as single section
     if (headerPositions.length <= 1) {
       const titleMatch = content.match(/^#\s+(.+?)(?:\n|$)/m)
-      return [{ 
-        title: titleMatch ? titleMatch[1] : 'Analysis', 
-        content: content.trim() 
+      return [{
+        title: titleMatch ? titleMatch[1] : 'Analysis',
+        content: content.trim()
       }]
     }
-    
+
     // Sort by position
     headerPositions.sort((a, b) => a.index - b.index)
-    
+
     // Extract each section
     const sections: { title: string; content: string }[] = []
     for (let i = 0; i < headerPositions.length; i++) {
       const start = headerPositions[i].index
       const end = i < headerPositions.length - 1 ? headerPositions[i + 1].index : content.length
-      
+
       let sectionContent = content.substring(start, end).trim()
       // Remove trailing --- separator if present
       sectionContent = sectionContent.replace(/\n---\s*$/, '').trim()
-      
+
       const titleMatch = sectionContent.match(/^#\s+(.+?)(?:\n|$)/)
       const title = titleMatch ? titleMatch[1] : 'Section'
-      
+
       sections.push({ title, content: sectionContent })
     }
-    
+
     return sections.filter(section => section.content.length > 0)
   }
 
@@ -128,7 +128,7 @@ export default function RCAAgentPage() {
     const sanitizedTitle = sectionTitle.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '-')
     const filename = `${currentChat.title}-${sanitizedTitle}`
     const cleanContent = stripPreamble(content)
-    
+
     if (format === 'docx') {
       try {
         const res = await fetch('/api/convert/markdown-to-docx', {
@@ -139,7 +139,7 @@ export default function RCAAgentPage() {
             title: filename,
           }),
         })
-        
+
         if (res.ok) {
           const blob = await res.blob()
           const url = URL.createObjectURL(blob)
@@ -150,7 +150,7 @@ export default function RCAAgentPage() {
           a.click()
           document.body.removeChild(a)
           URL.revokeObjectURL(url)
-          
+
           toast({ title: 'Success', description: 'RCA downloaded as DOCX' })
         } else {
           toast({ title: 'Error', description: 'Failed to convert to DOCX', variant: 'destructive' })
@@ -168,7 +168,7 @@ export default function RCAAgentPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      
+
       toast({ title: 'Success', description: 'RCA downloaded as Markdown' })
     }
   }
@@ -177,7 +177,7 @@ export default function RCAAgentPage() {
   const downloadFullMessage = async (content: string, format: 'md' | 'docx' = 'md', messageIndex: number) => {
     const filename = `${currentChat.title}-v${messageIndex + 1}`
     const cleanContent = stripPreamble(content)
-    
+
     if (format === 'docx') {
       try {
         const res = await fetch('/api/convert/markdown-to-docx', {
@@ -188,7 +188,7 @@ export default function RCAAgentPage() {
             title: filename,
           }),
         })
-        
+
         if (res.ok) {
           const blob = await res.blob()
           const url = URL.createObjectURL(blob)
@@ -199,7 +199,7 @@ export default function RCAAgentPage() {
           a.click()
           document.body.removeChild(a)
           URL.revokeObjectURL(url)
-          
+
           toast({ title: 'Success', description: 'Downloaded as DOCX' })
         } else {
           toast({ title: 'Error', description: 'Failed to convert to DOCX', variant: 'destructive' })
@@ -217,7 +217,7 @@ export default function RCAAgentPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      
+
       toast({ title: 'Success', description: 'Downloaded as Markdown' })
     }
   }
@@ -300,7 +300,7 @@ export default function RCAAgentPage() {
       toast({ title: 'Error', description: 'Please provide a title and error logs', variant: 'destructive' })
       return
     }
-    
+
     setLoading(true)
     try {
       const res = await fetch('/api/chats', {
@@ -311,19 +311,19 @@ export default function RCAAgentPage() {
           title: newChatForm.title,
         }),
       })
-      
+
       const data = await res.json()
       if (data.chat) {
         setCurrentChat(data.chat)
         setChats([data.chat, ...chats])
         setShowNewChatDialog(false)
-        
+
         // Auto-generate RCA based on selected types
         await sendMessage(
           `Analyze the following error logs and generate ${getRCATypesLabel(newChatForm.rcaTypes)}`,
           data.chat.id
         )
-        
+
         resetForm()
       }
     } catch (error) {
@@ -338,7 +338,7 @@ export default function RCAAgentPage() {
     if (types.includes('analysis')) labels.push('an error analysis')
     if (types.includes('user-facing')) labels.push('a user-facing RCA')
     if (types.includes('technical')) labels.push('a technical engineering RCA')
-    
+
     if (labels.length === 0) return 'an analysis'
     if (labels.length === 1) return labels[0]
     if (labels.length === 2) return `${labels[0]} and ${labels[1]}`
@@ -348,7 +348,7 @@ export default function RCAAgentPage() {
   const sendMessage = async (msgText?: string, chatId?: string) => {
     const textToSend = msgText || message
     const targetChatId = chatId || currentChat?.id
-    
+
     // Don't allow empty messages
     if (!textToSend.trim() || !targetChatId) {
       if (!msgText) {
@@ -356,13 +356,13 @@ export default function RCAAgentPage() {
       }
       return
     }
-    
+
     setGenerating(true)
     setMessage('')
-    
+
     try {
       const isInitialRequest = chatId && msgText // This is the auto-generated first message
-      
+
       const res = await fetch('/api/ai/rca', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -378,7 +378,7 @@ export default function RCAAgentPage() {
           }),
         }),
       })
-      
+
       const data = await res.json()
       if (data.chat) {
         setCurrentChat(data.chat)
@@ -398,15 +398,15 @@ export default function RCAAgentPage() {
     setChatToDelete(chatId)
     setShowDeleteDialog(true)
   }
-  
+
   const deleteChat = async () => {
     if (!chatToDelete) return
-    
+
     try {
       const res = await fetch(`/api/chats/${chatToDelete}`, {
         method: 'DELETE',
       })
-      
+
       if (res.ok) {
         setChats(chats.filter(c => c.id !== chatToDelete))
         if (currentChat?.id === chatToDelete) {
@@ -460,14 +460,14 @@ export default function RCAAgentPage() {
 
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Chat List */}
-        <Card className="lg:col-span-1 border-0 shadow-enterprise bg-white">
+        <Card className="lg:col-span-1 border-0 shadow-enterprise bg-card">
           <CardHeader className="border-b">
             <CardTitle className="text-lg font-semibold">Your Analyses</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-4">
             {chats.length === 0 ? (
               <div className="text-center py-8 space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 mx-auto">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 mx-auto">
                   <AlertTriangle className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm text-muted-foreground">No analyses yet</p>
@@ -476,11 +476,10 @@ export default function RCAAgentPage() {
               chats.map((chat) => (
                 <div
                   key={chat.id}
-                  className={`relative group rounded-xl transition-all-smooth ${
-                    currentChat?.id === chat.id
+                  className={`relative group rounded-xl transition-all-smooth ${currentChat?.id === chat.id
                       ? 'bg-primary text-white shadow-sm'
-                      : 'hover:bg-gray-50 border border-gray-100'
-                  }`}
+                      : 'hover:bg-muted/50 border border-border'
+                    }`}
                 >
                   <button
                     onClick={() => setCurrentChat(chat)}
@@ -508,10 +507,10 @@ export default function RCAAgentPage() {
         </Card>
 
         {/* Chat Area */}
-        <Card className="lg:col-span-3 border-0 shadow-enterprise bg-white">
+        <Card className="lg:col-span-3 border-0 shadow-enterprise bg-card">
           {currentChat ? (
             <>
-              <CardHeader className="border-b bg-gray-50/50">
+              <CardHeader className="border-b bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-xl">{currentChat.title}</CardTitle>
@@ -529,7 +528,7 @@ export default function RCAAgentPage() {
               <CardContent className="p-0">
                 <div className="h-[600px] flex flex-col">
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto bg-white">
+                  <div className="flex-1 overflow-y-auto bg-card">
                     {currentChat.messages.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center text-muted-foreground space-y-4 max-w-md px-4">
@@ -549,26 +548,24 @@ export default function RCAAgentPage() {
                             .slice(0, idx + 1)
                             .filter((m: any) => m.role === 'assistant').length
                           const isRCAMessage = msg.role === 'assistant' && msg.content.length > 100
-                          
+
                           // Parse sections for AI messages with multiple parts
                           const sections = msg.role === 'assistant' ? parseMessageSections(msg.content) : []
                           const hasMultipleSections = sections.length > 1
-                          
+
                           return (
                             <div
                               key={idx}
-                              className={`group flex gap-4 mb-8 animate-fade-in ${
-                                msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                              }`}
+                              className={`group flex gap-4 mb-8 animate-fade-in ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                                }`}
                             >
                               {/* Avatar */}
                               <div className="flex-shrink-0">
                                 <div
-                                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                                    msg.role === 'user'
+                                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${msg.role === 'user'
                                       ? 'bg-primary/10 text-primary'
                                       : 'bg-gradient-to-br from-primary to-purple-600 text-white'
-                                  }`}
+                                    }`}
                                 >
                                   {msg.role === 'user' ? (
                                     <User className="h-4 w-4" />
@@ -593,28 +590,28 @@ export default function RCAAgentPage() {
                                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                   </span>
                                 </div>
-                                
+
                                 {/* Message Text - Handle multiple sections */}
                                 {msg.role === 'assistant' && hasMultipleSections ? (
                                   <div className="space-y-6">
                                     {sections.map((section, sectionIdx) => {
                                       const sectionKey = `${idx}-${sectionIdx}`
                                       return (
-                                        <div key={sectionIdx} className="border border-gray-100 rounded-xl overflow-hidden">
+                                        <div key={sectionIdx} className="border border-border rounded-xl overflow-hidden">
                                           {/* Section Content */}
-                                          <div className="p-4 bg-white">
+                                          <div className="p-4 bg-card">
                                             <MarkdownRenderer content={section.content} />
                                           </div>
-                                          
+
                                           {/* Section Action Bar */}
-                                          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 border-t border-gray-100">
+                                          <div className="flex items-center gap-2 px-4 py-2 bg-muted/30 border-t border-border">
                                             <span className="text-xs font-medium text-muted-foreground mr-2">
                                               {section.title}
                                             </span>
                                             <div className="flex-1" />
                                             <button
                                               onClick={() => copyToClipboard(section.content, sectionKey)}
-                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-200 rounded-md transition-colors"
+                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
                                               title={`Copy ${section.title}`}
                                             >
                                               {copiedKey === sectionKey ? (
@@ -632,7 +629,7 @@ export default function RCAAgentPage() {
                                             <div className="w-px h-4 bg-gray-300" />
                                             <button
                                               onClick={() => downloadSection(section.content, 'md', section.title)}
-                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-200 rounded-md transition-colors"
+                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
                                               title="Download as Markdown"
                                             >
                                               <Download className="h-3.5 w-3.5" />
@@ -640,7 +637,7 @@ export default function RCAAgentPage() {
                                             </button>
                                             <button
                                               onClick={() => downloadSection(section.content, 'docx', section.title)}
-                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-200 rounded-md transition-colors"
+                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
                                               title="Download as DOCX"
                                             >
                                               <FileText className="h-3.5 w-3.5" />
@@ -650,13 +647,13 @@ export default function RCAAgentPage() {
                                         </div>
                                       )
                                     })}
-                                    
+
                                     {/* Download All option */}
                                     <div className="flex items-center justify-center gap-2 pt-2">
                                       <span className="text-xs text-muted-foreground">Download all:</span>
                                       <button
                                         onClick={() => copyToClipboard(msg.content, `${idx}-all`)}
-                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
                                         title="Copy all sections"
                                       >
                                         {copiedKey === `${idx}-all` ? (
@@ -673,7 +670,7 @@ export default function RCAAgentPage() {
                                       </button>
                                       <button
                                         onClick={() => downloadFullMessage(msg.content, 'md', aiMessageIndex)}
-                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
                                         title="Download all as Markdown"
                                       >
                                         <Download className="h-3.5 w-3.5" />
@@ -681,7 +678,7 @@ export default function RCAAgentPage() {
                                       </button>
                                       <button
                                         onClick={() => downloadFullMessage(msg.content, 'docx', aiMessageIndex)}
-                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
                                         title="Download all as DOCX"
                                       >
                                         <FileText className="h-3.5 w-3.5" />
@@ -692,59 +689,59 @@ export default function RCAAgentPage() {
                                 ) : (
                                   <>
                                     {/* Single section or user message */}
-                                <div className={`max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
-                                  {msg.role === 'assistant' ? (
-                                    <MarkdownRenderer content={msg.content} />
-                                  ) : (
-                                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
-                                      {msg.content}
-                                    </p>
-                                  )}
-                                </div>
-                                
-                                    {/* Single Action Bar for non-sectioned AI messages */}
-                                {msg.role === 'assistant' && (
-                                  <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
-                                    <button
-                                          onClick={() => copyToClipboard(msg.content, `${idx}`)}
-                                      className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
-                                      title="Copy message"
-                                    >
-                                          {copiedKey === `${idx}` ? (
-                                        <>
-                                          <Check className="h-3.5 w-3.5 text-green-600" />
-                                          <span className="text-green-600">Copied</span>
-                                        </>
+                                    <div className={`max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
+                                      {msg.role === 'assistant' ? (
+                                        <MarkdownRenderer content={msg.content} />
                                       ) : (
-                                        <>
-                                          <Copy className="h-3.5 w-3.5" />
-                                          <span>Copy</span>
-                                        </>
+                                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
+                                          {msg.content}
+                                        </p>
                                       )}
-                                    </button>
-                                    
-                                    {isRCAMessage && (
-                                      <>
-                                        <div className="w-px h-4 bg-gray-200" />
+                                    </div>
+
+                                    {/* Single Action Bar for non-sectioned AI messages */}
+                                    {msg.role === 'assistant' && (
+                                      <div className="flex items-center gap-2 pt-1 border-t border-border">
                                         <button
+                                          onClick={() => copyToClipboard(msg.content, `${idx}`)}
+                                          className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                                          title="Copy message"
+                                        >
+                                          {copiedKey === `${idx}` ? (
+                                            <>
+                                              <Check className="h-3.5 w-3.5 text-green-600" />
+                                              <span className="text-green-600">Copied</span>
+                                            </>
+                                          ) : (
+                                            <>
+                                              <Copy className="h-3.5 w-3.5" />
+                                              <span>Copy</span>
+                                            </>
+                                          )}
+                                        </button>
+
+                                        {isRCAMessage && (
+                                          <>
+                                            <div className="w-px h-4 bg-gray-200" />
+                                            <button
                                               onClick={() => downloadFullMessage(msg.content, 'md', aiMessageIndex)}
-                                          className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
-                                          title="Download as Markdown"
-                                        >
-                                          <Download className="h-3.5 w-3.5" />
-                                          <span>MD</span>
-                                        </button>
-                                        <button
+                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                                              title="Download as Markdown"
+                                            >
+                                              <Download className="h-3.5 w-3.5" />
+                                              <span>MD</span>
+                                            </button>
+                                            <button
                                               onClick={() => downloadFullMessage(msg.content, 'docx', aiMessageIndex)}
-                                          className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
-                                          title="Download as DOCX"
-                                        >
-                                          <FileText className="h-3.5 w-3.5" />
-                                          <span>DOCX</span>
-                                        </button>
-                                      </>
-                                    )}
-                                  </div>
+                                              className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                                              title="Download as DOCX"
+                                            >
+                                              <FileText className="h-3.5 w-3.5" />
+                                              <span>DOCX</span>
+                                            </button>
+                                          </>
+                                        )}
+                                      </div>
                                     )}
                                   </>
                                 )}
@@ -752,7 +749,7 @@ export default function RCAAgentPage() {
                             </div>
                           )
                         })}
-                        
+
                         {/* Loading State */}
                         {generating && (
                           <div className="flex gap-4 mb-8 animate-fade-in">
@@ -779,7 +776,7 @@ export default function RCAAgentPage() {
                   </div>
 
                   {/* Input */}
-                  <div className="border-t bg-gray-50/50 p-4">
+                  <div className="border-t bg-muted/30 p-4">
                     <div className="max-w-3xl mx-auto">
                       <form
                         onSubmit={(e) => {
@@ -815,9 +812,9 @@ export default function RCAAgentPage() {
                             }}
                           />
                         </div>
-                        <Button 
-                          type="submit" 
-                          disabled={generating || !message.trim()} 
+                        <Button
+                          type="submit"
+                          disabled={generating || !message.trim()}
                           size="lg"
                           className="h-12 px-6 shadow-sm"
                         >
@@ -863,21 +860,20 @@ export default function RCAAgentPage() {
             <DialogDescription>
               Step {formStep} of {getTotalSteps()} — {
                 formStep === 1 ? 'Provide error logs' :
-                formStep === 2 ? 'Add context' :
-                formStep === 3 ? 'Select analysis type' :
-                'Customize RCA format'
+                  formStep === 2 ? 'Add context' :
+                    formStep === 3 ? 'Select analysis type' :
+                      'Customize RCA format'
               }
             </DialogDescription>
           </DialogHeader>
-          
+
           {/* Progress indicator */}
           <div className="flex gap-2 mb-4">
             {Array.from({ length: getTotalSteps() }).map((_, i) => (
               <div
                 key={i}
-                className={`h-1.5 flex-1 rounded-full transition-colors ${
-                  i + 1 <= formStep ? 'bg-primary' : 'bg-gray-200'
-                }`}
+                className={`h-1.5 flex-1 rounded-full transition-colors ${i + 1 <= formStep ? 'bg-primary' : 'bg-gray-200'
+                  }`}
               />
             ))}
           </div>
@@ -952,37 +948,35 @@ export default function RCAAgentPage() {
             {formStep === 3 && (
               <div className="space-y-4">
                 <div className="space-y-1">
-                <Label>What would you like to generate?</Label>
+                  <Label>What would you like to generate?</Label>
                   <p className="text-sm text-muted-foreground">Select one or more options</p>
                 </div>
                 <div className="grid gap-3">
                   {rcaTypeOptions.map((option) => {
                     const isSelected = newChatForm.rcaTypes.includes(option.value)
                     return (
-                    <button
-                      key={option.value}
-                      type="button"
+                      <button
+                        key={option.value}
+                        type="button"
                         onClick={() => toggleRCAType(option.value)}
-                      className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${
-                          isSelected
+                        className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${isSelected
                             ? 'border-primary bg-primary/5'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
-                    >
-                        <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 mt-0.5 ${
-                          isSelected
+                            : 'border-gray-200 hover:border-gray-300'
+                          }`}
+                      >
+                        <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 mt-0.5 ${isSelected
                             ? 'border-primary bg-primary'
-                          : 'border-gray-300'
-                      }`}>
+                            : 'border-gray-300'
+                          }`}>
                           {isSelected && (
-                          <Check className="h-3 w-3 text-white" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-medium">{option.label}</p>
-                        <p className="text-sm text-muted-foreground">{option.description}</p>
-                      </div>
-                    </button>
+                            <Check className="h-3 w-3 text-white" />
+                          )}
+                        </div>
+                        <div>
+                          <p className="font-medium">{option.label}</p>
+                          <p className="text-sm text-muted-foreground">{option.description}</p>
+                        </div>
+                      </button>
                     )
                   })}
                 </div>
@@ -1060,7 +1054,7 @@ export default function RCAAgentPage() {
                   </>
                 )}
               </Button>
-              
+
               {formStep < getTotalSteps() ? (
                 <Button
                   type="button"
@@ -1071,8 +1065,8 @@ export default function RCAAgentPage() {
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
               ) : (
-                <Button 
-                  onClick={createNewChat} 
+                <Button
+                  onClick={createNewChat}
                   disabled={loading || !newChatForm.errorLogs.trim()}
                 >
                   {loading ? (

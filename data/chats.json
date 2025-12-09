@@ -305,7 +305,7 @@
   {
     "userId": "1763299547999",
     "type": "prd",
-    "title": "gdhtyrth",
+    "title": "user login screen UI",
     "messages": [
       {
         "role": "user",
@@ -411,17 +411,17 @@
     "templateId": "1763299548003",
     "id": "1764154336143",
     "createdAt": "2025-11-26T10:52:16.143Z",
-    "updatedAt": "2025-12-08T09:51:48.959Z",
+    "updatedAt": "2025-12-09T09:51:12.370Z",
     "prdDocument": "Okay, I will flesh out the \"Problem Statement\" section with more detail for the User Login Screen UI PRD.\n\n# Product Requirements Document (PRD) – Comprehensive Template\n\n## 0. Meta Information\n- Document Title: User Login Screen UI\n- Version: 1.0\n- Author: [Author Name]\n- Reviewers: [Reviewer Names]\n- Last Updated: [Date]\n- Status: Draft\n- Tier: P1\n- Target Release: Q4 2023\n\n## 1. Executive Summary\nThis document outlines the requirements for a new user login screen UI. The goal is to provide a secure, intuitive, and efficient login experience for all users. This will reduce login-related support tickets and improve overall user satisfaction and productivity.\n\n## 2. Background & Context\n\n### 2.1 Problem Statement\nThe current user login process is a critical touchpoint for our users, yet it presents several challenges that hinder usability and security. Users frequently encounter difficulties logging into their accounts, leading to frustration and decreased productivity. This inefficiency not only impacts individual user experience but also generates a significant volume of support requests, diverting valuable resources. The lack of a streamlined and secure login mechanism can also expose the system to increased security vulnerabilities.\n\n- **Cost of inaction:** Continued reliance on the current login process will result in ongoing user frustration, decreased adoption of our platform, increased operational costs due to support overhead, and a heightened risk of security breaches.\n\n### 2.2 User Pain Points\n- UX issues\n- Operational burden\n- Performance limitations\n\n### 2.3 Current State Analysis\n- Existing workflows\n- System limitations\n- Architecture overview\n\n### 2.4 Related Work / Dependencies\n- Previous attempts\n- Impact on adjacent teams\n\n## 3. Objectives & Non-Objectives\n\n### 3.1 Goals\n- What success looks like.\n\n### 3.2 Non-Goals\n- What is explicitly out of scope.\n\n## 4. Personas & Use Cases\n\n### 4.1 Target Personas\n- Role\n- Motivations\n- Jobs-to-be-done\n\n### 4.2 Primary Use Cases\n### 4.3 Secondary Use Cases\n\n## 5. Requirements\n\n### 5.1 Functional Requirements\nFormat per requirement:\n- ID (FR-01…)\n- Description\n- Priority\n- Acceptance Criteria\n- Edge cases\n- Metrics\n\n### 5.2 Non-Functional Requirements\n- Reliability\n- Security\n- Scalability\n- Observability\n- Compliance\n\n## 6. User Experience Design\n\n### 6.1 UX Principles\n*   **Simplicity:** The login screen should be clean, uncluttered, and easy to understand at a glance.\n*   **Clarity:** All labels, instructions, and error messages should be unambiguous and easy to comprehend.\n*   **Efficiency:** The login process should be as quick and seamless as possible, minimizing the number of steps and cognitive load.\n*   **Security Assurance:** Users should feel confident that their account is secure.\n\n### 6.2 User Flows\n### 6.3 Wireframes\n### 6.4 UI Specifications\n\n## 7. Technical Design\n\n### 7.1 Proposed Architecture\n### 7.2 API Design\n### 7.3 Data Models\n### 7.4 Migration Plan\n### 7.5 Scaling Considerations\n### 7.6 Security Considerations\n\n## 8. Rollout Plan\n\n### 8.1 Release Strategy\n### 8.2 Migration Strategy\n### 8.3 Backwards Compatibility\n### 8.4 Rollback Plan\n\n## 9. GTM + Cross-Functional Alignment\n\n### 9.1 Documentation\n### 9.2 Sales Enablement\n### 9.3 Support Playbook\n### 9.4 Marketing Plan\n\n## 10. Risks & Mitigation\n\n### 10.1 Product Risks\n*   **Risk:** User confusion regarding required fields or login process.\n    *   **Mitigation:** Implement clear labeling for all input fields, provide tooltips for any ambiguous terms, and ensure error messages are user-friendly and actionable.\n*   **Risk:** Inability of users to recover their accounts if they forget their password.\n    *   **Mitigation:** Implemen...\n\n### 10.2 Technical Risks\n### 10.3 Business Risks\n### 10.4 Mitigation\n\n## 11. Metrics & Analytics\n\n### 11.1 Success Metrics\n*   **Login Success Rate:** Percentage of attempted logins that are successful.\n    *   *Target:* >98%\n*   **Time to Login:** Average time taken for a user to successfully complete the login process from landing on the screen.\n    *   *Target:* <10 seconds\n*   **Failed Login Attempts:** Number of instances where a user enters incorrect credentials. This can indicate issues with pas...\n\n### 11.2 Instrumentation Required\n### 11.3 Dashboard Spec\n\n## 12. Appendices\n- Glossary\n- Customer Quotes\n- Raw Research\n- Competitor Analysis\n- MoM from meetings"
   },
   {
     "userId": "1763299547999",
     "type": "jira",
-    "title": "vdfggk",
+    "title": "Test Jira",
     "messages": [],
     "id": "1764155072490",
     "createdAt": "2025-11-26T11:04:32.490Z",
-    "updatedAt": "2025-11-26T11:04:32.490Z"
+    "updatedAt": "2025-12-09T09:51:58.530Z"
   },
   {
     "userId": "1764923472112",

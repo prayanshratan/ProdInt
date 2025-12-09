@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { AlertTriangle, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkles, FileText, ChevronRight, ChevronLeft } from 'lucide-react'
+import { AlertTriangle, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkles, FileText, ChevronRight, ChevronLeft, Pencil } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { FileUpload } from '@/components/FileUpload'
@@ -52,6 +52,8 @@ export default function RCAAgentPage() {
 
   const [message, setMessage] = useState('')
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [editedTitle, setEditedTitle] = useState('')
 
   const copyToClipboard = async (text: string, key: string) => {
     try {
@@ -244,6 +246,48 @@ export default function RCAAgentPage() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  useEffect(() => {
+    if (currentChat) {
+      setEditedTitle(currentChat.title)
+    }
+  }, [currentChat])
+
+  const renameChat = async () => {
+    if (!currentChat || !editedTitle.trim()) {
+      setIsEditingTitle(false)
+      setEditedTitle(currentChat?.title || '')
+      return
+    }
+
+    if (editedTitle === currentChat.title) {
+      setIsEditingTitle(false)
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/chats/${currentChat.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: editedTitle.trim() }),
+      })
+
+      if (res.ok) {
+        const updatedChat = { ...currentChat, title: editedTitle.trim() }
+        setCurrentChat(updatedChat)
+        setChats(chats.map(c => c.id === currentChat.id ? updatedChat : c))
+        toast({ title: 'Success', description: 'Renamed successfully' })
+      } else {
+        toast({ title: 'Error', description: 'Failed to rename', variant: 'destructive' })
+        setEditedTitle(currentChat.title)
+      }
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to rename', variant: 'destructive' })
+      setEditedTitle(currentChat.title)
+    } finally {
+      setIsEditingTitle(false)
+    }
   }
 
   const fetchChats = async () => {
@@ -477,8 +521,8 @@ export default function RCAAgentPage() {
                 <div
                   key={chat.id}
                   className={`relative group rounded-xl transition-all-smooth ${currentChat?.id === chat.id
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'hover:bg-muted/50 border border-border'
+                    ? 'bg-primary text-white shadow-sm'
+                    : 'hover:bg-muted/50 border border-border'
                     }`}
                 >
                   <button
@@ -513,7 +557,34 @@ export default function RCAAgentPage() {
               <CardHeader className="border-b bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
-                    <CardTitle className="text-xl">{currentChat.title}</CardTitle>
+                    {isEditingTitle ? (
+                      <Input
+                        value={editedTitle}
+                        onChange={(e) => setEditedTitle(e.target.value)}
+                        className="h-8 font-semibold text-lg w-[300px]"
+                        autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') renameChat()
+                          if (e.key === 'Escape') {
+                            setIsEditingTitle(false)
+                            setEditedTitle(currentChat.title)
+                          }
+                        }}
+                        onBlur={renameChat}
+                      />
+                    ) : (
+                      <div className="flex items-center gap-2 group/title">
+                        <CardTitle className="text-xl">{currentChat.title}</CardTitle>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-6 w-6 opacity-0 group-hover/title:opacity-100 transition-opacity"
+                          onClick={() => setIsEditingTitle(true)}
+                        >
+                          <Pencil className="h-3 w-3 text-muted-foreground" />
+                        </Button>
+                      </div>
+                    )}
                     <CardDescription className="text-sm">
                       {currentChat.messages.length} messages
                       {currentChat.rcaType && (
@@ -563,8 +634,8 @@ export default function RCAAgentPage() {
                               <div className="flex-shrink-0">
                                 <div
                                   className={`flex h-8 w-8 items-center justify-center rounded-lg ${msg.role === 'user'
-                                      ? 'bg-primary/10 text-primary'
-                                      : 'bg-gradient-to-br from-primary to-purple-600 text-white'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'bg-gradient-to-br from-primary to-purple-600 text-white'
                                     }`}
                                 >
                                   {msg.role === 'user' ? (
@@ -960,13 +1031,13 @@ export default function RCAAgentPage() {
                         type="button"
                         onClick={() => toggleRCAType(option.value)}
                         className={`flex items-start gap-4 p-4 rounded-xl border-2 transition-all text-left ${isSelected
-                            ? 'border-primary bg-primary/5'
-                            : 'border-gray-200 hover:border-gray-300'
+                          ? 'border-primary bg-primary/5'
+                          : 'border-gray-200 hover:border-gray-300'
                           }`}
                       >
                         <div className={`flex h-5 w-5 items-center justify-center rounded-md border-2 mt-0.5 ${isSelected
-                            ? 'border-primary bg-primary'
-                            : 'border-gray-300'
+                          ? 'border-primary bg-primary'
+                          : 'border-gray-300'
                           }`}>
                           {isSelected && (
                             <Check className="h-3 w-3 text-white" />

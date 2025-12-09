@@ -5,11 +5,11 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/hooks/use-toast'
-import { 
-  Sparkles, 
-  FileText, 
-  Users, 
-  Settings, 
+import {
+  Sparkles,
+  FileText,
+  Users,
+  Settings,
   Menu,
   X,
   FolderOpen,
@@ -33,12 +33,12 @@ export default function WorkspaceLayout({
       try {
         const res = await fetch('/api/auth/session')
         const data = await res.json()
-        
+
         if (!data.user) {
           router.push('/')
           return
         }
-        
+
         setUser(data.user)
       } catch (error) {
         router.push('/')
@@ -46,14 +46,14 @@ export default function WorkspaceLayout({
         setLoading(false)
       }
     }
-    
+
     checkSession()
   }, [router])
 
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-purple-600 mx-auto animate-pulse">
             <Sparkles className="h-8 w-8 text-white" />
@@ -74,9 +74,9 @@ export default function WorkspaceLayout({
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
+    <div className="min-h-screen bg-background">
       {/* Top Navigation */}
-      <nav className="border-b bg-white/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+      <nav className="border-b bg-background/95 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="container mx-auto px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -94,7 +94,7 @@ export default function WorkspaceLayout({
               </Link>
             </div>
             <div className="flex items-center space-x-3">
-              <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-gray-50">
+              <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-muted/50">
                 <span className="text-sm text-muted-foreground">Welcome,</span>
                 <span className="text-sm font-medium">{user?.name}</span>
               </div>
@@ -113,11 +113,10 @@ export default function WorkspaceLayout({
               return (
                 <Link key={item.href} href={item.href}>
                   <div
-                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all-smooth ${
-                      isActive
+                    className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all-smooth ${isActive
                         ? 'bg-primary text-white shadow-sm'
-                        : 'text-muted-foreground hover:bg-white hover:text-foreground hover:shadow-sm'
-                    }`}
+                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:shadow-sm'
+                      }`}
                   >
                     <Icon className="h-5 w-5" />
                     <span className="text-sm font-medium">{item.label}</span>
@@ -131,22 +130,21 @@ export default function WorkspaceLayout({
         {/* Sidebar - Mobile */}
         {sidebarOpen && (
           <div className="lg:hidden fixed inset-0 z-40 bg-black/20 backdrop-blur-sm" onClick={() => setSidebarOpen(false)}>
-            <aside className="fixed left-0 top-16 bottom-0 w-72 bg-white border-r shadow-xl p-6 space-y-1" onClick={(e) => e.stopPropagation()}>
+            <aside className="fixed left-0 top-16 bottom-0 w-72 bg-background border-r shadow-xl p-6 space-y-1" onClick={(e) => e.stopPropagation()}>
               {navItems.map((item) => {
                 const Icon = item.icon
                 const isActive = pathname === item.href
                 return (
-                  <Link 
-                    key={item.href} 
+                  <Link
+                    key={item.href}
                     href={item.href}
                     onClick={() => setSidebarOpen(false)}
                   >
                     <div
-                      className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all-smooth ${
-                        isActive
+                      className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all-smooth ${isActive
                           ? 'bg-primary text-white shadow-sm'
-                          : 'text-muted-foreground hover:bg-gray-50 hover:text-foreground'
-                      }`}
+                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                        }`}
                     >
                       <Icon className="h-5 w-5" />
                       <span className="text-sm font-medium">{item.label}</span>

@@ -13,14 +13,14 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 
 export default function TemplatesPage() {
   const { toast } = useToast()
-  
+
   const [templates, setTemplates] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [showNewDialog, setShowNewDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [templateToDelete, setTemplateToDelete] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
-  
+
   const [newTemplate, setNewTemplate] = useState({
     name: '',
     content: '',
@@ -49,7 +49,7 @@ export default function TemplatesPage() {
       toast({ title: 'Error', description: 'Name and content are required', variant: 'destructive' })
       return
     }
-    
+
     setCreating(true)
     try {
       const res = await fetch('/api/templates', {
@@ -57,7 +57,7 @@ export default function TemplatesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newTemplate),
       })
-      
+
       const data = await res.json()
       if (data.template) {
         // Refetch all templates to ensure correct default status
@@ -80,7 +80,7 @@ export default function TemplatesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isDefault: true }),
       })
-      
+
       if (res.ok) {
         await fetchTemplates()
         toast({ title: 'Success', description: 'Default template updated' })
@@ -94,15 +94,15 @@ export default function TemplatesPage() {
     setTemplateToDelete(templateId)
     setShowDeleteDialog(true)
   }
-  
+
   const deleteTemplate = async () => {
     if (!templateToDelete) return
-    
+
     try {
       const res = await fetch(`/api/templates/${templateToDelete}`, {
         method: 'DELETE',
       })
-      
+
       if (res.ok) {
         setTemplates(templates.filter(t => t.id !== templateToDelete))
         toast({ title: 'Success', description: 'Template deleted' })
@@ -126,7 +126,7 @@ export default function TemplatesPage() {
             title: template.name,
           }),
         })
-        
+
         if (res.ok) {
           const blob = await res.blob()
           const url = URL.createObjectURL(blob)
@@ -137,7 +137,7 @@ export default function TemplatesPage() {
           a.click()
           document.body.removeChild(a)
           URL.revokeObjectURL(url)
-          
+
           toast({ title: 'Success', description: 'Template downloaded as DOCX' })
         } else {
           toast({ title: 'Error', description: 'Failed to convert template', variant: 'destructive' })
@@ -155,7 +155,7 @@ export default function TemplatesPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      
+
       toast({ title: 'Success', description: 'Template downloaded' })
     }
   }
@@ -163,18 +163,18 @@ export default function TemplatesPage() {
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
-    
+
     if (file.name.endsWith('.docx')) {
       // Convert docx to text
       const formData = new FormData()
       formData.append('file', file)
-      
+
       try {
         const res = await fetch('/api/convert/docx-to-text', {
           method: 'POST',
           body: formData,
         })
-        
+
         const data = await res.json()
         if (data.text) {
           setNewTemplate({
@@ -200,7 +200,7 @@ export default function TemplatesPage() {
       }
       reader.readAsText(file)
     }
-    
+
     event.target.value = '' // Reset input
   }
 
@@ -246,9 +246,9 @@ export default function TemplatesPage() {
       </div>
 
       {templates.length === 0 ? (
-        <Card className="border-0 shadow-enterprise bg-white">
+        <Card className="border-0 shadow-enterprise bg-card">
           <CardContent className="p-16 text-center space-y-6">
-            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-50 mx-auto">
+            <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-muted/50 mx-auto">
               <FolderOpen className="h-10 w-10 text-muted-foreground" />
             </div>
             <div className="space-y-2">
@@ -266,7 +266,7 @@ export default function TemplatesPage() {
       ) : (
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {templates.map((template) => (
-            <Card key={template.id} className="group relative hover-lift border-0 shadow-enterprise bg-white overflow-hidden">
+            <Card key={template.id} className="group relative hover-lift border-0 shadow-enterprise bg-card overflow-hidden">
               {template.isDefault && (
                 <div className="absolute top-4 right-4 z-10">
                   <div className="bg-gradient-to-r from-primary to-purple-600 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center shadow-sm">

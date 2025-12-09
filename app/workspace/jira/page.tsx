@@ -19,7 +19,7 @@ export default function JiraAgentPage() {
   const searchParams = useSearchParams()
   const { toast } = useToast()
   const messagesEndRef = useRef<HTMLDivElement>(null)
-  
+
   const [showNewChatDialog, setShowNewChatDialog] = useState(false)
   const [showDeleteDialog, setShowDeleteDialog] = useState(false)
   const [chatToDelete, setChatToDelete] = useState<string | null>(null)
@@ -27,14 +27,14 @@ export default function JiraAgentPage() {
   const [currentChat, setCurrentChat] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [generating, setGenerating] = useState(false)
-  
+
   const [newChatForm, setNewChatForm] = useState({
     title: '',
     context: '',
     template: '',
     acceptanceCriteriaFormat: '',
   })
-  
+
   const [message, setMessage] = useState('')
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
 
@@ -92,7 +92,7 @@ export default function JiraAgentPage() {
       toast({ title: 'Error', description: 'Please enter a title', variant: 'destructive' })
       return
     }
-    
+
     setLoading(true)
     try {
       const res = await fetch('/api/chats', {
@@ -103,13 +103,13 @@ export default function JiraAgentPage() {
           title: newChatForm.title,
         }),
       })
-      
+
       const data = await res.json()
       if (data.chat) {
         setCurrentChat(data.chat)
         setChats([data.chat, ...chats])
         setShowNewChatDialog(false)
-        
+
         // Auto-generate initial user stories if context provided
         if (newChatForm.context) {
           await sendMessage(
@@ -120,7 +120,7 @@ export default function JiraAgentPage() {
             newChatForm.acceptanceCriteriaFormat
           )
         }
-        
+
         setNewChatForm({ title: '', context: '', template: '', acceptanceCriteriaFormat: '' })
       }
     } catch (error) {
@@ -131,7 +131,7 @@ export default function JiraAgentPage() {
   }
 
   const sendMessage = async (
-    msgText?: string, 
+    msgText?: string,
     chatId?: string,
     contextOverride?: string,
     templateOverride?: string,
@@ -139,12 +139,12 @@ export default function JiraAgentPage() {
   ) => {
     const textToSend = msgText || message
     const targetChatId = chatId || currentChat?.id
-    
+
     if (!textToSend.trim() || !targetChatId) return
-    
+
     setGenerating(true)
     setMessage('')
-    
+
     try {
       const res = await fetch('/api/ai/jira', {
         method: 'POST',
@@ -157,7 +157,7 @@ export default function JiraAgentPage() {
           acceptanceCriteriaFormat: acceptanceCriteriaFormatOverride || newChatForm.acceptanceCriteriaFormat || null,
         }),
       })
-      
+
       const data = await res.json()
       if (data.chat) {
         setCurrentChat(data.chat)
@@ -177,15 +177,15 @@ export default function JiraAgentPage() {
     setChatToDelete(chatId)
     setShowDeleteDialog(true)
   }
-  
+
   const deleteChat = async () => {
     if (!chatToDelete) return
-    
+
     try {
       const res = await fetch(`/api/chats/${chatToDelete}`, {
         method: 'DELETE',
       })
-      
+
       if (res.ok) {
         setChats(chats.filter(c => c.id !== chatToDelete))
         if (currentChat?.id === chatToDelete) {
@@ -218,12 +218,12 @@ export default function JiraAgentPage() {
       toast({ title: 'Error', description: 'No user stories to download', variant: 'destructive' })
       return
     }
-    
+
     const assistantMessages = currentChat.messages
       .filter((m: any) => m.role === 'assistant')
       .map((m: any) => stripPreamble(m.content)) // Strip preamble from each message
       .join('\n\n---\n\n')
-    
+
     if (format === 'docx') {
       try {
         const res = await fetch('/api/convert/markdown-to-docx', {
@@ -234,7 +234,7 @@ export default function JiraAgentPage() {
             title: `${currentChat.title}-user-stories`,
           }),
         })
-        
+
         if (res.ok) {
           const blob = await res.blob()
           const url = URL.createObjectURL(blob)
@@ -245,7 +245,7 @@ export default function JiraAgentPage() {
           a.click()
           document.body.removeChild(a)
           URL.revokeObjectURL(url)
-          
+
           toast({ title: 'Success', description: 'User stories downloaded as DOCX' })
         } else {
           toast({ title: 'Error', description: 'Failed to convert to DOCX', variant: 'destructive' })
@@ -263,7 +263,7 @@ export default function JiraAgentPage() {
       a.click()
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
-      
+
       toast({ title: 'Success', description: 'User stories downloaded as Markdown' })
     }
   }
@@ -285,27 +285,26 @@ export default function JiraAgentPage() {
 
       <div className="grid lg:grid-cols-4 gap-6">
         {/* Chat List */}
-        <Card className="lg:col-span-1 border-0 shadow-enterprise bg-white">
+        <Card className="lg:col-span-1 border-0 shadow-enterprise bg-card">
           <CardHeader className="border-b">
             <CardTitle className="text-lg font-semibold">Your User Stories</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-4">
             {chats.length === 0 ? (
               <div className="text-center py-8 space-y-3">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-50 mx-auto">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 mx-auto">
                   <Users className="h-6 w-6 text-muted-foreground" />
                 </div>
-              <p className="text-sm text-muted-foreground">No user stories yet</p>
+                <p className="text-sm text-muted-foreground">No user stories yet</p>
               </div>
             ) : (
               chats.map((chat) => (
                 <div
                   key={chat.id}
-                  className={`relative group rounded-xl transition-all-smooth ${
-                    currentChat?.id === chat.id
+                  className={`relative group rounded-xl transition-all-smooth ${currentChat?.id === chat.id
                       ? 'bg-primary text-white shadow-sm'
-                      : 'hover:bg-gray-50 border border-gray-100'
-                  }`}
+                      : 'hover:bg-muted/50 border border-border'
+                    }`}
                 >
                   <button
                     onClick={() => setCurrentChat(chat)}
@@ -333,10 +332,10 @@ export default function JiraAgentPage() {
         </Card>
 
         {/* Chat Area */}
-        <Card className="lg:col-span-3 border-0 shadow-enterprise bg-white">
+        <Card className="lg:col-span-3 border-0 shadow-enterprise bg-card">
           {currentChat ? (
             <>
-              <CardHeader className="border-b bg-gray-50/50">
+              <CardHeader className="border-b bg-muted/30">
                 <div className="flex items-center justify-between">
                   <div className="space-y-1">
                     <CardTitle className="text-xl">{currentChat.title}</CardTitle>
@@ -361,7 +360,7 @@ export default function JiraAgentPage() {
               <CardContent className="p-0">
                 <div className="h-[600px] flex flex-col">
                   {/* Messages */}
-                  <div className="flex-1 overflow-y-auto bg-white">
+                  <div className="flex-1 overflow-y-auto bg-card">
                     {currentChat.messages.length === 0 ? (
                       <div className="flex items-center justify-center h-full">
                         <div className="text-center text-muted-foreground space-y-4 max-w-md px-4">
@@ -379,18 +378,16 @@ export default function JiraAgentPage() {
                         {currentChat.messages.map((msg: any, idx: number) => (
                           <div
                             key={idx}
-                            className={`group flex gap-4 mb-8 animate-fade-in ${
-                              msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                            }`}
+                            className={`group flex gap-4 mb-8 animate-fade-in ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                              }`}
                           >
                             {/* Avatar */}
                             <div className="flex-shrink-0">
                               <div
-                                className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                                  msg.role === 'user'
+                                className={`flex h-8 w-8 items-center justify-center rounded-lg ${msg.role === 'user'
                                     ? 'bg-primary/10 text-primary'
                                     : 'bg-gradient-to-br from-primary to-purple-600 text-white'
-                                }`}
+                                  }`}
                               >
                                 {msg.role === 'user' ? (
                                   <User className="h-4 w-4" />
@@ -410,7 +407,7 @@ export default function JiraAgentPage() {
                                   {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                 </span>
                               </div>
-                              
+
                               {/* Message Text */}
                               <div className={`max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
                                 {msg.role === 'assistant' ? (
@@ -421,13 +418,13 @@ export default function JiraAgentPage() {
                                   </p>
                                 )}
                               </div>
-                              
+
                               {/* Action Bar - Always visible for AI messages */}
                               {msg.role === 'assistant' && (
-                                <div className="flex items-center gap-2 pt-1 border-t border-gray-100">
+                                <div className="flex items-center gap-2 pt-1 border-t border-border">
                                   <button
                                     onClick={() => copyToClipboard(msg.content, idx)}
-                                    className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-gray-100 rounded-md transition-colors"
+                                    className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
                                     title="Copy message"
                                   >
                                     {copiedIndex === idx ? (
@@ -447,7 +444,7 @@ export default function JiraAgentPage() {
                             </div>
                           </div>
                         ))}
-                        
+
                         {/* Loading State */}
                         {generating && (
                           <div className="flex gap-4 mb-8 animate-fade-in">
@@ -463,30 +460,30 @@ export default function JiraAgentPage() {
                                   <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                                   <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                                   <div className="w-2 h-2 bg-primary/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        </div>
-                      </div>
-                    )}
-                    <div ref={messagesEndRef} />
+                        )}
+                        <div ref={messagesEndRef} />
                       </div>
                     )}
                   </div>
 
                   {/* Input */}
-                  <div className="border-t bg-gray-50/50 p-4">
+                  <div className="border-t bg-muted/30 p-4">
                     <div className="max-w-3xl mx-auto">
-                    <form
-                      onSubmit={(e) => {
-                        e.preventDefault()
-                        sendMessage()
-                      }}
+                      <form
+                        onSubmit={(e) => {
+                          e.preventDefault()
+                          sendMessage()
+                        }}
                         className="flex gap-3 items-end"
-                    >
+                      >
                         <div className="flex-1 relative">
                           <Textarea
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
                             onKeyDown={(e) => {
                               // Submit on Enter, but allow Shift+Enter for new line
                               if (e.key === 'Enter' && !e.shiftKey && !e.metaKey && !e.ctrlKey && !e.altKey) {
@@ -496,9 +493,9 @@ export default function JiraAgentPage() {
                                 }
                               }
                             }}
-                        placeholder="Ask for changes or provide more context..."
-                        disabled={generating}
-                            className="min-h-[48px] max-h-[200px] resize-none shadow-sm border-gray-200 focus:border-primary"
+                            placeholder="Ask for changes or provide more context..."
+                            disabled={generating}
+                            className="min-h-[48px] max-h-[200px] resize-none shadow-sm border-border focus:border-primary"
                             rows={1}
                             style={{
                               height: 'auto',
@@ -511,15 +508,15 @@ export default function JiraAgentPage() {
                             }}
                           />
                         </div>
-                        <Button 
-                          type="submit" 
-                          disabled={generating || !message.trim()} 
+                        <Button
+                          type="submit"
+                          disabled={generating || !message.trim()}
                           size="lg"
                           className="h-12 px-6 shadow-sm"
                         >
-                        <Send className="h-4 w-4" />
-                      </Button>
-                    </form>
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </form>
                       <p className="text-xs text-muted-foreground text-center mt-2">
                         Press Enter to send, Shift+Enter for new line
                       </p>
@@ -530,14 +527,14 @@ export default function JiraAgentPage() {
             </>
           ) : (
             <CardContent className="p-16 text-center space-y-6">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gray-50 mx-auto">
+              <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-muted/50 mx-auto">
                 <Users className="h-10 w-10 text-muted-foreground" />
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-semibold">No user story selected</h3>
                 <p className="text-muted-foreground text-lg max-w-sm mx-auto">
-                Create a new user story or select an existing one to continue
-              </p>
+                  Create a new user story or select an existing one to continue
+                </p>
               </div>
               <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm mt-4">
                 <Plus className="h-4 w-4 mr-2" />
@@ -624,8 +621,8 @@ export default function JiraAgentPage() {
               >
                 Cancel
               </Button>
-              <Button 
-                onClick={createNewChat} 
+              <Button
+                onClick={createNewChat}
                 disabled={loading || !newChatForm.context.trim()}
               >
                 {loading ? (

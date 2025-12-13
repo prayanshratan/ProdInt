@@ -9,12 +9,12 @@ import {
   Sparkles,
   FileText,
   Users,
-  Settings,
   Menu,
   X,
   FolderOpen,
   AlertTriangle
 } from 'lucide-react'
+import { UserNav } from '@/components/user-nav'
 
 export default function WorkspaceLayout({
   children,
@@ -70,7 +70,6 @@ export default function WorkspaceLayout({
     { href: '/workspace/jira', label: 'Jira Agent', icon: Users },
     { href: '/workspace/rca', label: 'RCA Agent', icon: AlertTriangle },
     { href: '/workspace/templates', label: 'Templates', icon: FolderOpen },
-    { href: '/workspace/settings', label: 'Settings', icon: Settings },
   ]
 
   return (
@@ -93,11 +92,12 @@ export default function WorkspaceLayout({
                 <span className="text-xl font-semibold tracking-tight">ProdInt</span>
               </Link>
             </div>
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-4">
               <div className="hidden md:flex items-center space-x-2 px-3 py-1.5 rounded-lg bg-muted/50">
                 <span className="text-sm text-muted-foreground">Welcome,</span>
                 <span className="text-sm font-medium">{user?.name}</span>
               </div>
+              <UserNav user={user} />
             </div>
           </div>
         </div>
@@ -114,8 +114,8 @@ export default function WorkspaceLayout({
                 <Link key={item.href} href={item.href}>
                   <div
                     className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all-smooth ${isActive
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:shadow-sm'
+                      ? 'bg-primary text-white shadow-sm'
+                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground hover:shadow-sm'
                       }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -142,8 +142,8 @@ export default function WorkspaceLayout({
                   >
                     <div
                       className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all-smooth ${isActive
-                          ? 'bg-primary text-white shadow-sm'
-                          : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                         }`}
                     >
                       <Icon className="h-5 w-5" />

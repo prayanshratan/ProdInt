@@ -210,5 +210,5 @@ Proprietary - All rights reserved
 
 ---
 
-Built with ❤️ for Product Managers
+Built by Prayansh with ❤️ for Product Managers
 

@@ -44,7 +44,7 @@ export default function WorkspacePage() {
       <div className="space-y-3">
         <h1 className="text-4xl md:text-5xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground text-xl">
-          Welcome back! Choose what you&apos;d like to work on today.
+          Choose what you&apos;d like to work on today.
         </p>
       </div>
 

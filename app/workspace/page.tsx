@@ -4,6 +4,14 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog'
 import { FileText, Users, Clock, ArrowRight, FolderOpen, AlertTriangle } from 'lucide-react'
 
 export default function WorkspacePage() {
@@ -17,7 +25,9 @@ export default function WorkspacePage() {
         const res = await fetch('/api/chats')
         const data = await res.json()
         if (data.chats) {
-          setChats(data.chats.slice(0, 5))
+          if (data.chats) {
+            setChats(data.chats)
+          }
         }
       } catch (error) {
         console.error('Failed to fetch chats:', error)
@@ -39,22 +49,22 @@ export default function WorkspacePage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-3 gap-6">
         <Card
           className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-card overflow-hidden"
           onClick={() => router.push('/workspace/prd')}
         >
-          <CardHeader className="space-y-6 pb-8">
+          <CardHeader className="space-y-4 pb-6">
             <div className="flex items-center justify-between">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                <FileText className="h-7 w-7" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                <FileText className="h-6 w-6" />
               </div>
-              <ArrowRight className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 transition-transform" />
             </div>
-            <div className="space-y-2">
-              <CardTitle className="text-2xl">Create PRD</CardTitle>
-              <CardDescription className="text-base leading-relaxed">
-                Generate comprehensive Product Requirements Documents with AI assistance
+            <div className="space-y-1">
+              <CardTitle className="text-xl">Create PRD</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Generate comprehensive Product Requirements Documents
               </CardDescription>
             </div>
           </CardHeader>
@@ -64,17 +74,37 @@ export default function WorkspacePage() {
           className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-card overflow-hidden"
           onClick={() => router.push('/workspace/jira')}
         >
-          <CardHeader className="space-y-6 pb-8">
+          <CardHeader className="space-y-4 pb-6">
             <div className="flex items-center justify-between">
-              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                <Users className="h-7 w-7" />
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                <Users className="h-6 w-6" />
               </div>
-              <ArrowRight className="h-6 w-6 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 transition-transform" />
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 transition-transform" />
             </div>
-            <div className="space-y-2">
-              <CardTitle className="text-2xl">Generate User Stories</CardTitle>
-              <CardDescription className="text-base leading-relaxed">
+            <div className="space-y-1">
+              <CardTitle className="text-xl">Generate User Stories</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
                 Create Jira-ready user stories with acceptance criteria
+              </CardDescription>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card
+          className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-card overflow-hidden"
+          onClick={() => router.push('/workspace/rca')}
+        >
+          <CardHeader className="space-y-4 pb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                <AlertTriangle className="h-6 w-6" />
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 transition-transform" />
+            </div>
+            <div className="space-y-1">
+              <CardTitle className="text-xl">RCA Agent</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Analyze incidents and generate Root Cause Analysis reports
               </CardDescription>
             </div>
           </CardHeader>
@@ -108,14 +138,63 @@ export default function WorkspacePage() {
       {/* Recent Activity */}
       <Card className="border-0 shadow-enterprise bg-card">
         <CardHeader>
-          <div className="space-y-2">
-            <CardTitle className="text-xl flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Recent Activity
-            </CardTitle>
-            <CardDescription className="text-base">
-              Your recent PRDs and user stories
-            </CardDescription>
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <CardTitle className="text-xl flex items-center gap-2">
+                <Clock className="h-5 w-5 text-primary" />
+                Recent Activity
+              </CardTitle>
+              <CardDescription className="text-base">
+                Your recent activity across all agents
+              </CardDescription>
+            </div>
+            {chats.length > 5 && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button variant="ghost" className="text-muted-foreground hover:text-primary">
+                    View All
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-3xl max-h-[80vh] flex flex-col">
+                  <DialogHeader>
+                    <DialogTitle>Recent Activity</DialogTitle>
+                    <DialogDescription>
+                      Your complete history across all agents
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="flex-1 overflow-y-auto pr-2 mt-4 space-y-2">
+                    {chats.map((chat) => (
+                      <div
+                        key={chat.id}
+                        className="group flex items-center justify-between p-4 rounded-xl border border-border hover:border-primary/20 hover:bg-muted/50 cursor-pointer transition-all-smooth"
+                        onClick={() => router.push(`/workspace/${chat.type}?chatId=${chat.id}`)}
+                      >
+                        <div className="flex items-center space-x-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                            {chat.type === 'prd' ? (
+                              <FileText className="h-5 w-5" />
+                            ) : chat.type === 'rca' ? (
+                              <AlertTriangle className="h-5 w-5" />
+                            ) : (
+                              <Users className="h-5 w-5" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-medium">{chat.title}</p>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <span className="capitalize">{chat.type === 'prd' ? 'PRD' : chat.type === 'rca' ? 'RCA' : 'User Story'}</span>
+                              <span>•</span>
+                              <span>{new Date(chat.updatedAt).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-1 transition-all" />
+                      </div>
+                    ))}
+                  </div>
+                </DialogContent>
+              </Dialog>
+            )}
           </div>
         </CardHeader>
         <CardContent>
@@ -151,7 +230,7 @@ export default function WorkspacePage() {
             </div>
           ) : (
             <div className="space-y-2">
-              {chats.map((chat) => (
+              {chats.slice(0, 5).map((chat) => (
                 <div
                   key={chat.id}
                   className="group flex items-center justify-between p-4 rounded-xl border border-border hover:border-primary/20 hover:bg-muted/50 cursor-pointer transition-all-smooth"

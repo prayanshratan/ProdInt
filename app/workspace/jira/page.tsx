@@ -333,7 +333,7 @@ export default function JiraAgentPage() {
           <CardHeader className="border-b">
             <CardTitle className="text-lg font-semibold">Your User Stories</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2 pt-4">
+          <CardContent className="space-y-2 pt-4 h-[600px] overflow-y-auto custom-scrollbar">
             {chats.length === 0 ? (
               <div className="text-center py-8 space-y-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 mx-auto">

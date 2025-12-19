@@ -286,7 +286,7 @@ export default function TemplatesPage() {
                   ) : (
                     <>
                       <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
-                      Custom Template
+                      System Template
                     </>
                   )}
                 </CardDescription>

@@ -150,26 +150,45 @@ export default function JiraAgentPage() {
 
       const data = await res.json()
       if (data.chat) {
-        setCurrentChat(data.chat)
-        setChats([data.chat, ...chats])
+        // Close dialog and show chat immediately
         setShowNewChatDialog(false)
+        setLoading(false)
 
-        // Auto-generate initial user stories if context provided
+        // If context provided, add a pending user message and start generating
         if (newChatForm.context) {
-          await sendMessage(
+          // Create a temporary chat state with the user's message to show immediately
+          const pendingMessage = {
+            role: 'user',
+            content: newChatForm.context,
+            timestamp: new Date().toISOString()
+          }
+          const chatWithPendingMessage = {
+            ...data.chat,
+            messages: [...(data.chat.messages || []), pendingMessage]
+          }
+          setCurrentChat(chatWithPendingMessage)
+          setChats([chatWithPendingMessage, ...chats])
+
+          // Start generating - this will show the loading indicator
+          setGenerating(true)
+
+          // Now send the actual message (don't await to keep UI responsive)
+          sendMessage(
             newChatForm.context,
             data.chat.id,
             newChatForm.context,
             newChatForm.template,
             newChatForm.acceptanceCriteriaFormat
           )
+        } else {
+          setCurrentChat(data.chat)
+          setChats([data.chat, ...chats])
         }
 
         setNewChatForm({ title: '', context: '', template: '', acceptanceCriteriaFormat: '' })
       }
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to create chat', variant: 'destructive' })
-    } finally {
       setLoading(false)
     }
   }

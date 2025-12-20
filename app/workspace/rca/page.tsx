@@ -358,21 +358,34 @@ export default function RCAAgentPage() {
 
       const data = await res.json()
       if (data.chat) {
-        setCurrentChat(data.chat)
-        setChats([data.chat, ...chats])
+        // Close dialog and show chat immediately
         setShowNewChatDialog(false)
+        setLoading(false)
 
-        // Auto-generate RCA based on selected types
-        await sendMessage(
-          `Analyze the following error logs and generate ${getRCATypesLabel(newChatForm.rcaTypes)}`,
-          data.chat.id
-        )
+        // Create a temporary chat state with the user's message to show immediately
+        const userMessage = `Analyze the following error logs and generate ${getRCATypesLabel(newChatForm.rcaTypes)}`
+        const pendingMessage = {
+          role: 'user',
+          content: userMessage,
+          timestamp: new Date().toISOString()
+        }
+        const chatWithPendingMessage = {
+          ...data.chat,
+          messages: [...(data.chat.messages || []), pendingMessage]
+        }
+        setCurrentChat(chatWithPendingMessage)
+        setChats([chatWithPendingMessage, ...chats])
+
+        // Start generating - this will show the loading indicator
+        setGenerating(true)
+
+        // Now send the actual message (don't await to keep UI responsive)
+        sendMessage(userMessage, data.chat.id)
 
         resetForm()
       }
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to create analysis', variant: 'destructive' })
-    } finally {
       setLoading(false)
     }
   }

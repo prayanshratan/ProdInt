@@ -228,25 +228,44 @@ export default function PRDAgentPage() {
 
       const data = await res.json()
       if (data.chat) {
-        setCurrentChat(data.chat)
-        setChats([data.chat, ...chats])
+        // Close dialog and show chat immediately
         setShowNewChatDialog(false)
+        setLoading(false)
 
-        // Auto-generate initial PRD if context provided
+        // If context provided, add a pending user message and start generating
         if (newChatForm.onePager || newChatForm.additionalContext) {
-          await sendMessage(
+          // Create a temporary chat state with the user's message to show immediately
+          const pendingMessage = {
+            role: 'user',
+            content: 'Please generate a PRD based on the provided context.',
+            timestamp: new Date().toISOString()
+          }
+          const chatWithPendingMessage = {
+            ...data.chat,
+            messages: [...(data.chat.messages || []), pendingMessage]
+          }
+          setCurrentChat(chatWithPendingMessage)
+          setChats([chatWithPendingMessage, ...chats])
+
+          // Start generating - this will show the loading indicator
+          setGenerating(true)
+
+          // Now send the actual message (don't await in createNewChat to keep UI responsive)
+          sendMessage(
             'Please generate a PRD based on the provided context.',
             data.chat.id,
             newChatForm.onePager,
             newChatForm.additionalContext
           )
+        } else {
+          setCurrentChat(data.chat)
+          setChats([data.chat, ...chats])
         }
 
         setNewChatForm({ title: '', templateId: '', onePager: '', additionalContext: '' })
       }
     } catch (error) {
       toast({ title: 'Error', description: 'Failed to create chat', variant: 'destructive' })
-    } finally {
       setLoading(false)
     }
   }

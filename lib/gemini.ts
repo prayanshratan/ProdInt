@@ -456,6 +456,8 @@ export async function generatePPT(
   let prompt = `${systemInstructions}\n\n`
   prompt += `You are an expert Product Manager specializing in presentation design and content strategy. Your task is to create compelling, professional presentation content that can be converted into PowerPoint slides.\n\n`
 
+  // These syntax rules are required for the markdown-to-pptx converter to work correctly.
+  // They define HOW to mark slides (#, ##, ###), not WHAT content/structure to generate.
   const syntaxRules = `**SYNTAX REQUIREMENTS (MANDATORY):**
 - Use # for the main presentation title (creates a title slide)
 - Use ## for major sections (creates section divider slides)
@@ -465,14 +467,23 @@ export async function generatePPT(
 
   if (template) {
     prompt += `**TEMPLATE INSTRUCTIONS:**
-You must generate the presentation content by following the structure, flow, and sections of the USER TEMPLATE below.
+You must generate the presentation content by strictly following the structure of the USER TEMPLATE below.
+
 However, you MUST strictly format the output using the following Markdown syntax so it can be converted to slides:
 ${syntaxRules}
 
-Map the sections and slides from the template below into the #/##/### format.
+CRITICAL INSTRUCTIONS:
+1. STRUCTURE: Identify every slide and section defined in the template text below. Create a corresponding slide in your output.
+2. CONTENT: The template provides the SKELETON (headers/topics). You MUST generate comprehensive, detailed content (bullets) for EVERY slide based on the user's Topic.
+3. DO NOT produce empty slides. If a slide in the template has a title but no content, YOU MUST GENERATE CONTENT for it.
+4. Do NOT use the default 8-15 slides structure. Use ONLY the structure found in the template.
+5. Map the inferred structure into the #/##/### syntax defined above.
 
 **USER TEMPLATE:**
-${template}\n\n`
+=== BEGIN TEMPLATE ===
+${template}
+=== END TEMPLATE ===
+\n\n`
   } else {
     prompt += `**OUTPUT FORMAT:**
 Your response MUST follow this exact Markdown structure for optimal slide generation:
@@ -517,6 +528,11 @@ ${syntaxRules}
 
   prompt += `\n=== TASK ===
 Generate a professional, engaging presentation based on the above information.
+CRITICAL: You MUST write actual content (bullet points) for EVERY single slide.
+Do NOT produce empty slides with just titles.
+Fill each slide with relevant, high-quality information derived from the "PRESENTATION TOPIC/CONTENT".
+
+Content Guidelines:
 1. Clear and concise
 2. Visually scannable (short bullet points)
 3. Logically structured

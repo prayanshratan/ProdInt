@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
-import { getTextExtractor } from 'office-text-extractor'
-import fs from 'fs/promises'
-import path from 'path'
-import os from 'os'
+import PizZip from 'pizzip'
 
 export async function POST(request: Request) {
     try {
@@ -35,24 +32,54 @@ export async function POST(request: Request) {
 
         const buffer = Buffer.from(await file.arrayBuffer())
 
-        // Write to temp file
-        const tempDir = os.tmpdir()
-        const tempFilePath = path.join(tempDir, `temp-${Date.now()}.pptx`)
-
-        await fs.writeFile(tempFilePath, buffer)
-
         try {
-            const extractor = getTextExtractor()
-            const text = await extractor.extractText({ input: tempFilePath, type: 'file' })
+            // Use PizZip to unzip the PPTX in memory
+            const zip = new PizZip(buffer)
 
-            // Cleanup
-            await fs.unlink(tempFilePath)
+            // Find all slide files
+            const slideFiles = Object.keys(zip.files).filter(fileName =>
+                fileName.match(/^ppt\/slides\/slide\d+\.xml$/)
+            )
 
-            return NextResponse.json({ text })
+            // Sort slides by number (slide1.xml, slide2.xml, etc.)
+            slideFiles.sort((a, b) => {
+                const numA = parseInt(a.match(/slide(\d+)\.xml/)![1])
+                const numB = parseInt(b.match(/slide(\d+)\.xml/)![1])
+                return numA - numB
+            })
+
+            let structuredText = ''
+
+            // Extract text from each slide
+            slideFiles.forEach((fileName, index) => {
+                const content = zip.file(fileName)?.asText()
+                if (content) {
+                    // Extract text content from <a:t> tags
+                    // Simple regex approach - sufficient for text extraction
+                    const textMatches = content.match(/<a:t.*?>(.*?)<\/a:t>/g)
+
+                    if (textMatches) {
+                        const slideText = textMatches
+                            .map(tag => tag.replace(/<\/?a:t.*?>/g, ''))
+                            .join(' ')
+
+                        if (slideText.trim()) {
+                            structuredText += `=== SLIDE ${index + 1} ===\n${slideText.trim()}\n\n`
+                        }
+                    }
+                }
+            })
+
+            if (!structuredText) {
+                throw new Error('No text content found in slides')
+            }
+
+            return NextResponse.json({ text: structuredText })
+
         } catch (extractError) {
-            // Try to cleanup even if extraction fails
-            try { await fs.unlink(tempFilePath) } catch { }
-            throw extractError
+            console.error('PizZip extraction failed, falling back to basic extraction:', extractError)
+            // Fallback or re-throw
+            throw new Error('Failed to parse PPTX structure')
         }
 
     } catch (error: any) {

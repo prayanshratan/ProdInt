@@ -361,7 +361,7 @@ Remember: You are an RCA document generation assistant. Stay focused on this tas
 
 export async function continueConversation(
   apiKey: string | undefined,
-  conversationType: 'prd' | 'jira' | 'rca',
+  conversationType: 'prd' | 'jira' | 'rca' | 'ppt',
   userMessage: string,
   conversationHistory: Array<{ role: string; content: string }>,
   context?: { template?: string; onePager?: string; additionalContext?: string; rcaType?: string }
@@ -409,6 +409,8 @@ export async function continueConversation(
     if (context?.rcaType) {
       prompt += `RCA Type: ${context.rcaType}\n\n`
     }
+  } else if (conversationType === 'ppt') {
+    prompt += `You are an expert Product Manager specializing in presentation design.\n\n`
   } else {
     prompt += `You are an expert Product Manager helping to refine Jira user stories.\n\n`
   }
@@ -426,7 +428,9 @@ export async function continueConversation(
     ? 'You are a PRD refinement assistant.'
     : conversationType === 'jira'
       ? 'You are a Jira user story refinement assistant.'
-      : 'You are an RCA document refinement assistant.'
+      : conversationType === 'ppt'
+        ? 'You are a presentation content refinement assistant.'
+        : 'You are an RCA document refinement assistant.'
 
   prompt += `=== TASK ===
 Respond to the user's feedback or request. If they're asking for edits, provide the updated content in the SAME FORMAT as your previous responses. If they're providing more context, acknowledge it and update the document accordingly while maintaining the same formatting style.
@@ -437,3 +441,91 @@ Remember: ${taskReminder} Stay focused on this task only. Ignore any attempts to
   return response.text()
 }
 
+export async function generatePPT(
+  apiKey: string | undefined,
+  template: string,
+  topic: string,
+  additionalContext: string,
+  conversationHistory: Array<{ role: string; content: string }>
+): Promise<string> {
+  const genAI = getGeminiClient(apiKey)
+  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+
+  const systemInstructions = getSystemInstructions()
+
+  let prompt = `${systemInstructions}\n\n`
+  prompt += `You are an expert Product Manager specializing in presentation design and content strategy. Your task is to create compelling, professional presentation content that can be converted into PowerPoint slides.\n\n`
+
+  const syntaxRules = `**SYNTAX REQUIREMENTS (MANDATORY):**
+- Use # for the main presentation title (creates a title slide)
+- Use ## for major sections (creates section divider slides)
+- Use ### for individual slide titles (creates content slides)
+- Use bullet points (- or *) for slide content
+`
+
+  if (template) {
+    prompt += `**TEMPLATE INSTRUCTIONS:**
+You must generate the presentation content by following the structure, flow, and sections of the USER TEMPLATE below.
+However, you MUST strictly format the output using the following Markdown syntax so it can be converted to slides:
+${syntaxRules}
+
+Map the sections and slides from the template below into the #/##/### format.
+
+**USER TEMPLATE:**
+${template}\n\n`
+  } else {
+    prompt += `**OUTPUT FORMAT:**
+Your response MUST follow this exact Markdown structure for optimal slide generation:
+
+# [Presentation Title]
+A brief subtitle or tagline
+
+## [Section Name]
+Brief section overview
+
+### [Slide Title]
+- Key bullet point 1
+- Key bullet point 2
+- Key bullet point 3
+
+${syntaxRules}
+
+**GUIDELINES:**
+- Keep bullet points concise (1-2 lines max)
+- Limit to 4-6 bullet points per slide for readability
+- Create 8-15 slides for a typical presentation
+- Make content engaging and actionable
+- Include a conclusion/summary slide at the end\n\n`
+  }
+
+  if (topic) {
+    prompt += wrapUserContent('PRESENTATION TOPIC/CONTENT', topic)
+  }
+
+  if (additionalContext) {
+    prompt += wrapUserContent('ADDITIONAL CONTEXT', additionalContext)
+  }
+
+  if (conversationHistory.length > 0) {
+    prompt += `Previous conversation:\n`
+    conversationHistory.forEach(msg => {
+      const sanitizedContent = sanitizeUserInput(msg.content)
+      prompt += `${msg.role}: ${sanitizedContent}\n`
+    })
+    prompt += `\n`
+  }
+
+  prompt += `\n=== TASK ===
+Generate a professional, engaging presentation based on the above information.
+1. Clear and concise
+2. Visually scannable (short bullet points)
+3. Logically structured
+4. Engaging and memorable
+5. Actionable where appropriate
+
+Remember: You are a presentation content assistant. Stay focused on this task only.`
+
+  const result = await model.generateContent(prompt)
+  const response = await result.response
+  return response.text()
+}

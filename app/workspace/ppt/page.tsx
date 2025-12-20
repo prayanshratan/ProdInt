@@ -14,7 +14,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { FileUpload } from '@/components/FileUpload'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
 
-export default function PRDAgentPage() {
+export default function PPTAgentPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { toast } = useToast()
@@ -83,15 +83,15 @@ export default function PRDAgentPage() {
     return content
   }
 
-  const downloadMessage = async (content: string, format: 'md' | 'docx' = 'md', messageIndex: number) => {
+  const downloadMessage = async (content: string, format: 'md' | 'pptx' = 'md', messageIndex: number) => {
     const filename = `${currentChat.title}-v${messageIndex + 1}`
 
     // Strip conversational preamble before downloading
     const cleanContent = stripPreamble(content)
 
-    if (format === 'docx') {
+    if (format === 'pptx') {
       try {
-        const res = await fetch('/api/convert/markdown-to-docx', {
+        const res = await fetch('/api/convert/markdown-to-pptx', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -105,18 +105,18 @@ export default function PRDAgentPage() {
           const url = URL.createObjectURL(blob)
           const a = document.createElement('a')
           a.href = url
-          a.download = `${filename}.docx`
+          a.download = `${filename}.pptx`
           document.body.appendChild(a)
           a.click()
           document.body.removeChild(a)
           URL.revokeObjectURL(url)
 
-          toast({ title: 'Success', description: 'PRD downloaded as DOCX' })
+          toast({ title: 'Success', description: 'Presentation downloaded as PPTX' })
         } else {
-          toast({ title: 'Error', description: 'Failed to convert to DOCX', variant: 'destructive' })
+          toast({ title: 'Error', description: 'Failed to convert to PPTX', variant: 'destructive' })
         }
       } catch (error) {
-        toast({ title: 'Error', description: 'Failed to download DOCX', variant: 'destructive' })
+        toast({ title: 'Error', description: 'Failed to download PPTX', variant: 'destructive' })
       }
     } else {
       const blob = new Blob([cleanContent], { type: 'text/markdown' })
@@ -129,7 +129,7 @@ export default function PRDAgentPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      toast({ title: 'Success', description: 'PRD downloaded as Markdown' })
+      toast({ title: 'Success', description: 'Presentation content downloaded as Markdown' })
     }
   }
 
@@ -146,7 +146,7 @@ export default function PRDAgentPage() {
       if (chat) {
         setCurrentChat(chat)
         // Clear the query parameter
-        router.replace('/workspace/prd', { scroll: false })
+        router.replace('/workspace/ppt', { scroll: false })
       }
     }
   }, [searchParams, chats, router])
@@ -206,7 +206,7 @@ export default function PRDAgentPage() {
       const res = await fetch('/api/chats')
       const data = await res.json()
       if (data.chats) {
-        const prdChats = data.chats.filter((c: any) => c.type === 'prd')
+        const prdChats = data.chats.filter((c: any) => c.type === 'ppt')
         setChats(prdChats)
       }
     } catch (error) {
@@ -219,7 +219,7 @@ export default function PRDAgentPage() {
       const res = await fetch('/api/templates')
       const data = await res.json()
       if (data.templates) {
-        setTemplates(data.templates.filter((t: any) => t.type === 'prd' || !t.type))
+        setTemplates(data.templates.filter((t: any) => t.type === 'ppt'))
       }
     } catch (error) {
       console.error('Failed to fetch templates:', error)
@@ -238,7 +238,7 @@ export default function PRDAgentPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          type: 'prd',
+          type: 'ppt',
           title: newChatForm.title,
           templateId: newChatForm.templateId || undefined,
         }),
@@ -253,9 +253,9 @@ export default function PRDAgentPage() {
         // If context provided, add a pending user message and start generating
         if (newChatForm.onePager || newChatForm.additionalContext) {
           // Build a detailed user message with actual inputs
-          let userContent = '**Request:** Generate a PRD based on the provided context.\n\n'
+          let userContent = '**Request:** Generate a presentation based on the provided content.\n\n'
           if (newChatForm.onePager) {
-            userContent += `**One-Pager / Problem Statement:**\n${newChatForm.onePager}\n\n`
+            userContent += `**Presentation Topic / Content:**\n${newChatForm.onePager}\n\n`
           }
           if (newChatForm.additionalContext) {
             userContent += `**Additional Context:**\n${newChatForm.additionalContext}`
@@ -282,7 +282,8 @@ export default function PRDAgentPage() {
             userContent.trim(),
             data.chat.id,
             newChatForm.onePager,
-            newChatForm.additionalContext
+            newChatForm.additionalContext,
+            newChatForm.templateId || undefined
           )
         } else {
           setCurrentChat(data.chat)
@@ -301,7 +302,8 @@ export default function PRDAgentPage() {
     msgText?: string,
     chatId?: string,
     onePagerOverride?: string,
-    additionalContextOverride?: string
+    additionalContextOverride?: string,
+    templateIdOverride?: string
   ) => {
     const textToSend = msgText || message
     const targetChatId = chatId || currentChat?.id
@@ -312,15 +314,15 @@ export default function PRDAgentPage() {
     setMessage('')
 
     try {
-      const res = await fetch('/api/ai/prd', {
+      const res = await fetch('/api/ai/ppt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           chatId: targetChatId,
           message: textToSend,
-          onePager: onePagerOverride || newChatForm.onePager,
+          topic: onePagerOverride || newChatForm.onePager,
           additionalContext: additionalContextOverride || newChatForm.additionalContext,
-          templateId: currentChat?.templateId,
+          templateId: templateIdOverride || currentChat?.templateId,
         }),
       })
 
@@ -357,12 +359,12 @@ export default function PRDAgentPage() {
         if (currentChat?.id === chatToDelete) {
           setCurrentChat(null)
         }
-        toast({ title: 'Success', description: 'PRD deleted successfully' })
+        toast({ title: 'Success', description: 'Presentation deleted successfully' })
       } else {
-        toast({ title: 'Error', description: 'Failed to delete PRD', variant: 'destructive' })
+        toast({ title: 'Error', description: 'Failed to delete presentation', variant: 'destructive' })
       }
     } catch (error) {
-      toast({ title: 'Error', description: 'Failed to delete PRD', variant: 'destructive' })
+      toast({ title: 'Error', description: 'Failed to delete presentation', variant: 'destructive' })
     } finally {
       setShowDeleteDialog(false)
       setChatToDelete(null)
@@ -370,8 +372,8 @@ export default function PRDAgentPage() {
   }
 
   const downloadPRD = async (format: 'md' | 'docx' = 'md') => {
-    if (!currentChat?.prdDocument) {
-      toast({ title: 'Error', description: 'No PRD to download', variant: 'destructive' })
+    if (!currentChat?.pptDocument) {
+      toast({ title: 'Error', description: 'No presentation to download', variant: 'destructive' })
       return
     }
 
@@ -381,7 +383,7 @@ export default function PRDAgentPage() {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            markdown: currentChat.prdDocument,
+            markdown: currentChat.pptDocument,
             title: currentChat.title,
           }),
         })
@@ -397,7 +399,7 @@ export default function PRDAgentPage() {
           document.body.removeChild(a)
           URL.revokeObjectURL(url)
 
-          toast({ title: 'Success', description: 'PRD downloaded as DOCX' })
+          toast({ title: 'Success', description: 'Presentation downloaded as DOCX' })
         } else {
           toast({ title: 'Error', description: 'Failed to convert to DOCX', variant: 'destructive' })
         }
@@ -405,7 +407,7 @@ export default function PRDAgentPage() {
         toast({ title: 'Error', description: 'Failed to download DOCX', variant: 'destructive' })
       }
     } else {
-      const blob = new Blob([currentChat.prdDocument], { type: 'text/markdown' })
+      const blob = new Blob([currentChat.pptDocument], { type: 'text/markdown' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -415,7 +417,7 @@ export default function PRDAgentPage() {
       document.body.removeChild(a)
       URL.revokeObjectURL(url)
 
-      toast({ title: 'Success', description: 'PRD downloaded as Markdown' })
+      toast({ title: 'Success', description: 'Presentation downloaded as Markdown' })
     }
   }
 
@@ -423,14 +425,14 @@ export default function PRDAgentPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div className="space-y-2">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">PRD Agent</h1>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight">PPT Agent</h1>
           <p className="text-muted-foreground text-xl">
-            Create comprehensive Product Requirements Documents with AI
+            Create professional PowerPoint presentations with AI
           </p>
         </div>
         <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm">
           <Plus className="h-5 w-5 mr-2" />
-          New PRD
+          New Presentation
         </Button>
       </div>
 
@@ -438,7 +440,7 @@ export default function PRDAgentPage() {
         {/* Chat List */}
         <Card className="lg:col-span-1 border-0 shadow-enterprise bg-card">
           <CardHeader className="border-b">
-            <CardTitle className="text-lg font-semibold">Your PRDs</CardTitle>
+            <CardTitle className="text-lg font-semibold">Your Presentations</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 pt-4 h-[600px] overflow-y-auto custom-scrollbar">
             {chats.length === 0 ? (
@@ -446,7 +448,7 @@ export default function PRDAgentPage() {
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-muted/50 mx-auto">
                   <FileText className="h-6 w-6 text-muted-foreground" />
                 </div>
-                <p className="text-sm text-muted-foreground">No PRDs yet</p>
+                <p className="text-sm text-muted-foreground">No presentations yet</p>
               </div>
             ) : (
               chats.map((chat) => (
@@ -472,7 +474,7 @@ export default function PRDAgentPage() {
                       confirmDeleteChat(chat.id)
                     }}
                     className="absolute right-2 top-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 hover:bg-destructive hover:text-white rounded-lg"
-                    title="Delete PRD"
+                    title="Delete Presentation"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
                   </button>
@@ -535,7 +537,7 @@ export default function PRDAgentPage() {
                           </div>
                           <div className="space-y-2">
                             <p className="text-lg font-medium text-foreground">Start the conversation</p>
-                            <p className="text-sm">Ask me to generate your PRD or provide context about what you'd like to build.</p>
+                            <p className="text-sm">Ask me to generate your presentation or provide context about your topic.</p>
                           </div>
                         </div>
                       </div>
@@ -546,7 +548,7 @@ export default function PRDAgentPage() {
                           const aiMessageIndex = currentChat.messages
                             .slice(0, idx + 1)
                             .filter((m: any) => m.role === 'assistant').length
-                          const isPRDMessage = msg.role === 'assistant' && msg.content.length > 100
+                          const isPPTMessage = msg.role === 'assistant' && msg.content.length > 100
 
                           return (
                             <div
@@ -576,7 +578,7 @@ export default function PRDAgentPage() {
                                   <span className="text-sm font-semibold">
                                     {msg.role === 'user' ? 'You' : 'ProdInt AI'}
                                   </span>
-                                  {isPRDMessage && (
+                                  {isPPTMessage && (
                                     <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
                                       v{aiMessageIndex}
                                     </span>
@@ -654,7 +656,7 @@ export default function PRDAgentPage() {
                                     </button>
 
                                     {/* Download Buttons - Only for substantial messages */}
-                                    {isPRDMessage && (
+                                    {isPPTMessage && (
                                       <>
                                         <div className="w-px h-4 bg-gray-200" />
                                         <button
@@ -666,12 +668,12 @@ export default function PRDAgentPage() {
                                           <span>MD</span>
                                         </button>
                                         <button
-                                          onClick={() => downloadMessage(msg.content, 'docx', aiMessageIndex)}
+                                          onClick={() => downloadMessage(msg.content, 'pptx', aiMessageIndex)}
                                           className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
-                                          title="Download as DOCX"
+                                          title="Download as PPTX"
                                         >
                                           <FileText className="h-3.5 w-3.5" />
-                                          <span>DOCX</span>
+                                          <span>PPTX</span>
                                         </button>
                                       </>
                                     )}
@@ -768,14 +770,14 @@ export default function PRDAgentPage() {
                 <FileText className="h-10 w-10 text-muted-foreground" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-2xl font-semibold">No PRD selected</h3>
+                <h3 className="text-2xl font-semibold">No presentation selected</h3>
                 <p className="text-muted-foreground text-lg max-w-sm mx-auto">
-                  Create a new PRD or select an existing one to continue
+                  Create a new presentation or select an existing one to continue
                 </p>
               </div>
               <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm mt-4">
                 <Plus className="h-4 w-4 mr-2" />
-                Create New PRD
+                Create New Presentation
               </Button>
             </CardContent>
           )}
@@ -786,15 +788,15 @@ export default function PRDAgentPage() {
       <Dialog open={showNewChatDialog} onOpenChange={setShowNewChatDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Create New PRD</DialogTitle>
+            <DialogTitle>Create New Presentation</DialogTitle>
             <DialogDescription>
-              Provide details to generate a comprehensive PRD
+              Provide details to generate a comprehensive Presentation
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="title">
-                PRD Title <span className="text-destructive">*</span>
+                Presentation Title <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="title"
@@ -805,14 +807,14 @@ export default function PRDAgentPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="template">PRD Template (Optional)</Label>
+              <Label htmlFor="template">Presentation Template (Optional)</Label>
               <select
                 id="template"
                 className="w-full h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
                 value={newChatForm.templateId}
                 onChange={(e) => setNewChatForm({ ...newChatForm, templateId: e.target.value })}
               >
-                <option value="">Use default template</option>
+                <option value="">No Template (AI Generated)</option>
                 {templates.map((template) => (
                   <option key={template.id} value={template.id}>
                     {template.name}
@@ -823,7 +825,7 @@ export default function PRDAgentPage() {
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="onePager">One-Pager / Problem Statement (Optional)</Label>
+                <Label htmlFor="onePager">Presentation Topic / Content (Optional)</Label>
                 <FileUpload
                   onFileProcessed={(text) => setNewChatForm({ ...newChatForm, onePager: text })}
                   accept=".docx,.txt,.md"
@@ -832,7 +834,7 @@ export default function PRDAgentPage() {
               </div>
               <Textarea
                 id="onePager"
-                placeholder="Paste your problem statement, one-pager, or context here..."
+                placeholder="Describe the topic, key points, or paste content for your presentation..."
                 value={newChatForm.onePager}
                 onChange={(e) => setNewChatForm({ ...newChatForm, onePager: e.target.value })}
                 rows={6}
@@ -843,7 +845,7 @@ export default function PRDAgentPage() {
               <Label htmlFor="additionalContext">Additional Context (Optional)</Label>
               <Textarea
                 id="additionalContext"
-                placeholder="Any additional information, requirements, or constraints..."
+                placeholder="Any additional context, target audience, or style preferences..."
                 value={newChatForm.additionalContext}
                 onChange={(e) => setNewChatForm({ ...newChatForm, additionalContext: e.target.value })}
                 rows={4}
@@ -870,7 +872,7 @@ export default function PRDAgentPage() {
                 ) : (
                   <>
                     <Plus className="h-4 w-4 mr-2" />
-                    Create PRD
+                    Create Presentation
                   </>
                 )}
               </Button>

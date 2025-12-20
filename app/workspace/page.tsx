@@ -12,7 +12,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { FileText, Users, Clock, ArrowRight, FolderOpen, AlertTriangle } from 'lucide-react'
+import { FileText, Users, Clock, ArrowRight, FolderOpen, AlertTriangle, Presentation } from 'lucide-react'
 
 export default function WorkspacePage() {
   const router = useRouter()
@@ -49,7 +49,7 @@ export default function WorkspacePage() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid md:grid-cols-3 gap-6">
+      <div className="grid md:grid-cols-4 gap-4">
         <Card
           className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-card overflow-hidden"
           onClick={() => router.push('/workspace/prd')}
@@ -85,6 +85,26 @@ export default function WorkspacePage() {
               <CardTitle className="text-xl">Generate User Stories</CardTitle>
               <CardDescription className="text-sm leading-relaxed">
                 Create Jira-ready user stories with acceptance criteria
+              </CardDescription>
+            </div>
+          </CardHeader>
+        </Card>
+
+        <Card
+          className="group cursor-pointer hover-lift border-0 shadow-enterprise bg-card overflow-hidden"
+          onClick={() => router.push('/workspace/ppt')}
+        >
+          <CardHeader className="space-y-4 pb-6">
+            <div className="flex items-center justify-between">
+              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-all">
+                <Presentation className="h-6 w-6" />
+              </div>
+              <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-primary transition-colors group-hover:translate-x-1 transition-transform" />
+            </div>
+            <div className="space-y-1">
+              <CardTitle className="text-xl">Create Presentation</CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                Generate professional PowerPoint presentations
               </CardDescription>
             </div>
           </CardHeader>
@@ -175,6 +195,8 @@ export default function WorkspacePage() {
                               <FileText className="h-5 w-5" />
                             ) : chat.type === 'rca' ? (
                               <AlertTriangle className="h-5 w-5" />
+                            ) : chat.type === 'ppt' ? (
+                              <Presentation className="h-5 w-5" />
                             ) : (
                               <Users className="h-5 w-5" />
                             )}
@@ -182,7 +204,7 @@ export default function WorkspacePage() {
                           <div>
                             <p className="font-medium">{chat.title}</p>
                             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                              <span className="capitalize">{chat.type === 'prd' ? 'PRD' : chat.type === 'rca' ? 'RCA' : 'User Story'}</span>
+                              <span className="capitalize">{chat.type === 'prd' ? 'PRD' : chat.type === 'rca' ? 'RCA' : chat.type === 'ppt' ? 'Presentation' : 'User Story'}</span>
                               <span>•</span>
                               <span>{new Date(chat.updatedAt).toLocaleDateString()}</span>
                             </div>
@@ -242,6 +264,8 @@ export default function WorkspacePage() {
                         <FileText className="h-5 w-5" />
                       ) : chat.type === 'rca' ? (
                         <AlertTriangle className="h-5 w-5" />
+                      ) : chat.type === 'ppt' ? (
+                        <Presentation className="h-5 w-5" />
                       ) : (
                         <Users className="h-5 w-5" />
                       )}

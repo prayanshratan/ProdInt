@@ -39,6 +39,23 @@ export function FileUpload({ onFileProcessed, accept = '.docx,.txt,.md', label =
         } else {
           toast({ title: 'Error', description: data.error || 'Failed to process file', variant: 'destructive' })
         }
+      } else if (file.name.endsWith('.pptx')) {
+        // Convert pptx to text
+        const formData = new FormData()
+        formData.append('file', file)
+
+        const res = await fetch('/api/convert/pptx-to-text', {
+          method: 'POST',
+          body: formData,
+        })
+
+        const data = await res.json()
+        if (data.text) {
+          onFileProcessed(data.text, file.name)
+          toast({ title: 'Success', description: 'File uploaded successfully' })
+        } else {
+          toast({ title: 'Error', description: data.error || 'Failed to process file', variant: 'destructive' })
+        }
       } else {
         // Read text file directly
         const text = await file.text()

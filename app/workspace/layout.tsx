@@ -12,7 +12,8 @@ import {
   Menu,
   X,
   FolderOpen,
-  AlertTriangle
+  AlertTriangle,
+  Presentation
 } from 'lucide-react'
 import { UserNav } from '@/components/user-nav'
 
@@ -67,6 +68,7 @@ export default function WorkspaceLayout({
   const navItems = [
     { href: '/workspace', label: 'Dashboard', icon: Sparkles },
     { href: '/workspace/prd', label: 'PRD Agent', icon: FileText },
+    { href: '/workspace/ppt', label: 'PPT Agent', icon: Presentation },
     { href: '/workspace/jira', label: 'Jira Agent', icon: Users },
     { href: '/workspace/rca', label: 'RCA Agent', icon: AlertTriangle },
     { href: '/workspace/templates', label: 'Templates', icon: FolderOpen },

@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { FolderOpen, Plus, Download, Trash2, Star, Loader2, FileText, Eye } from 'lucide-react'
+import { FolderOpen, Plus, Download, Trash2, Star, Loader2, FileText, Eye, Presentation, Info, Upload } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
@@ -306,10 +306,12 @@ export default function TemplatesPage() {
   const [creating, setCreating] = useState(false)
   const [previewTemplate, setPreviewTemplate] = useState<any | null>(null)
 
-  const [newTemplate, setNewTemplate] = useState({
+  const [newTemplate, setNewTemplate] = useState<{ name: string, content: string, type: 'prd' | 'ppt' }>({
     name: '',
     content: '',
+    type: 'prd',
   })
+  const [dialogStep, setDialogStep] = useState<'type' | 'details'>('type')
 
   useEffect(() => {
     fetchTemplates()
@@ -348,7 +350,8 @@ export default function TemplatesPage() {
         // Refetch all templates to ensure correct default status
         await fetchTemplates()
         setShowNewDialog(false)
-        setNewTemplate({ name: '', content: '' })
+        setNewTemplate({ name: '', content: '', type: 'prd' })
+        setDialogStep('type')
         toast({ title: 'Success', description: 'Template created successfully' })
       }
     } catch (error) {
@@ -400,8 +403,37 @@ export default function TemplatesPage() {
     }
   }
 
-  const downloadTemplate = async (template: any, format: 'md' | 'docx' = 'md') => {
-    if (format === 'docx') {
+  const downloadTemplate = async (template: any, format: 'md' | 'docx' | 'pptx' = 'md') => {
+    if (format === 'pptx') {
+      try {
+        const res = await fetch('/api/convert/markdown-to-pptx', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            markdown: template.content,
+            title: template.name,
+          }),
+        })
+
+        if (res.ok) {
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${template.name}.pptx`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+
+          toast({ title: 'Success', description: 'Template downloaded as PPTX' })
+        } else {
+          toast({ title: 'Error', description: 'Failed to convert template', variant: 'destructive' })
+        }
+      } catch (error) {
+        toast({ title: 'Error', description: 'Failed to download template', variant: 'destructive' })
+      }
+    } else if (format === 'docx') {
       try {
         const res = await fetch('/api/convert/markdown-to-docx', {
           method: 'POST',
@@ -445,48 +477,42 @@ export default function TemplatesPage() {
     }
   }
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDialogFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
-    if (file.name.endsWith('.docx')) {
-      // Convert docx to text
-      const formData = new FormData()
-      formData.append('file', file)
-
-      try {
-        const res = await fetch('/api/convert/docx-to-text', {
-          method: 'POST',
-          body: formData,
-        })
-
+    setCreating(true)
+    try {
+      if (file.name.endsWith('.docx')) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/convert/docx-to-text', { method: 'POST', body: formData })
         const data = await res.json()
         if (data.text) {
-          setNewTemplate({
-            name: file.name.replace(/\.(md|txt|docx)$/, ''),
-            content: data.text,
-          })
-          setShowNewDialog(true)
+          setNewTemplate(prev => ({ ...prev, content: data.text }))
         } else {
           toast({ title: 'Error', description: data.error || 'Failed to process file', variant: 'destructive' })
         }
-      } catch (error) {
-        toast({ title: 'Error', description: 'Failed to upload file', variant: 'destructive' })
+      } else if (file.name.endsWith('.pptx')) {
+        const formData = new FormData()
+        formData.append('file', file)
+        const res = await fetch('/api/convert/pptx-to-text', { method: 'POST', body: formData })
+        const data = await res.json()
+        if (data.text) {
+          setNewTemplate(prev => ({ ...prev, content: data.text }))
+        } else {
+          toast({ title: 'Error', description: data.error || 'Failed to process file', variant: 'destructive' })
+        }
+      } else {
+        const text = await file.text()
+        setNewTemplate(prev => ({ ...prev, content: text }))
       }
-    } else {
-      const reader = new FileReader()
-      reader.onload = (e) => {
-        const content = e.target?.result as string
-        setNewTemplate({
-          name: file.name.replace(/\.(md|txt|docx)$/, ''),
-          content,
-        })
-        setShowNewDialog(true)
-      }
-      reader.readAsText(file)
+    } catch (error) {
+      toast({ title: 'Error', description: 'Failed to upload file', variant: 'destructive' })
+    } finally {
+      setCreating(false)
+      event.target.value = '' // Reset input
     }
-
-    event.target.value = '' // Reset input
   }
 
   if (loading) {
@@ -512,18 +538,12 @@ export default function TemplatesPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => document.getElementById('file-upload')?.click()} className="shadow-sm">
-            <FileText className="h-4 w-4 mr-2" />
-            Upload
-          </Button>
-          <input
-            id="file-upload"
-            type="file"
-            accept=".md,.txt,.docx"
-            className="hidden"
-            onChange={handleFileUpload}
-          />
-          <Button onClick={() => setShowNewDialog(true)} className="shadow-sm">
+          {/* Unified New Template Button */}
+          <Button onClick={() => {
+            setNewTemplate({ name: '', content: '', type: 'prd' })
+            setDialogStep('type')
+            setShowNewDialog(true)
+          }} className="shadow-sm">
             <Plus className="h-4 w-4 mr-2" />
             New Template
           </Button>
@@ -561,7 +581,12 @@ export default function TemplatesPage() {
                 </div>
               )}
               <CardHeader className="space-y-3 pb-4">
-                <CardTitle className="pr-20 text-xl">{template.name}</CardTitle>
+                <div className="flex items-center gap-2">
+                  <div className={`p-2 rounded-lg ${template.type === 'ppt' ? 'bg-orange-100 text-orange-600' : 'bg-blue-100 text-blue-600'}`} title={template.type === 'ppt' ? 'PPT Template' : 'PRD Template'}>
+                    {template.type === 'ppt' ? <Presentation className="h-5 w-5" /> : <FileText className="h-5 w-5" />}
+                  </div>
+                  <CardTitle className="pr-20 text-xl">{template.name}</CardTitle>
+                </div>
                 <CardDescription className="flex items-center gap-2 text-sm">
                   {template.userId === 'system' ? (
                     <>
@@ -571,9 +596,11 @@ export default function TemplatesPage() {
                   ) : (
                     <>
                       <div className="h-1.5 w-1.5 rounded-full bg-green-500"></div>
-                      System Template
+                      User Template
                     </>
                   )}
+                  <span className="text-muted-foreground">•</span>
+                  <span className="uppercase text-xs font-semibold tracking-wider">{template.type === 'ppt' ? 'PPT' : 'PRD'}</span>
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -581,24 +608,38 @@ export default function TemplatesPage() {
                   {getCleanPreviewText(template.content).substring(0, 150)}...
                 </p>
                 <div className="flex flex-wrap gap-2 pt-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadTemplate(template, 'md')}
-                    className="shadow-sm"
-                  >
-                    <Download className="h-3 w-3 mr-1.5" />
-                    MD
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => downloadTemplate(template, 'docx')}
-                    className="shadow-sm"
-                  >
-                    <Download className="h-3 w-3 mr-1.5" />
-                    DOCX
-                  </Button>
+                  {template.type === 'ppt' ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => downloadTemplate(template, 'pptx')}
+                      className="shadow-sm"
+                    >
+                      <Download className="h-3 w-3 mr-1.5" />
+                      PPT
+                    </Button>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadTemplate(template, 'md')}
+                        className="shadow-sm"
+                      >
+                        <Download className="h-3 w-3 mr-1.5" />
+                        MD
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => downloadTemplate(template, 'docx')}
+                        className="shadow-sm"
+                      >
+                        <Download className="h-3 w-3 mr-1.5" />
+                        DOCX
+                      </Button>
+                    </>
+                  )}
                   <Button
                     variant="outline"
                     size="sm"
@@ -641,67 +682,154 @@ export default function TemplatesPage() {
           <DialogHeader>
             <DialogTitle>Create New Template</DialogTitle>
             <DialogDescription>
-              Create a custom PRD template for your team
+              {dialogStep === 'type' ? 'Select the type of template you want to create' : 'Fill in the template details'}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="template-name">
-                Template Name <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="template-name"
-                placeholder="e.g., Enterprise PRD Template"
-                value={newTemplate.name}
-                onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
-              />
-            </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="template-content">
-                Template Content <span className="text-destructive">*</span>
-              </Label>
-              <Textarea
-                id="template-content"
-                placeholder="Paste your template content here..."
-                value={newTemplate.content}
-                onChange={(e) => setNewTemplate({ ...newTemplate, content: e.target.value })}
-                rows={20}
-                className="font-mono text-sm"
-              />
-            </div>
+          {dialogStep === 'type' ? (
+            <>
+              <div className="grid grid-cols-2 gap-4 py-8">
+                <div
+                  className="cursor-pointer rounded-xl border-2 border-muted hover:border-primary bg-card p-6 transition-all hover:bg-muted/50 text-center space-y-4 group"
+                  onClick={() => {
+                    setNewTemplate(prev => ({ ...prev, type: 'prd' }))
+                    setDialogStep('details')
+                  }}
+                >
+                  <div className="mx-auto w-16 h-16 rounded-full bg-blue-100 flex items-center justify-center group-hover:bg-blue-200 transition-colors">
+                    <FileText className="w-8 h-8 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">PRD Template</h3>
+                    <p className="text-sm text-muted-foreground mt-1">For Product Requirements Documents</p>
+                  </div>
+                </div>
 
-            <div className="flex justify-end gap-2 pt-4">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowNewDialog(false)
-                  setNewTemplate({ name: '', content: '' })
-                }}
-                disabled={creating}
-              >
-                Cancel
-              </Button>
-              <Button onClick={createTemplate} disabled={creating}>
-                {creating ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating...
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Template
-                  </>
-                )}
-              </Button>
+                <div
+                  className="cursor-pointer rounded-xl border-2 border-muted hover:border-primary bg-card p-6 transition-all hover:bg-muted/50 text-center space-y-4 group"
+                  onClick={() => {
+                    setNewTemplate(prev => ({ ...prev, type: 'ppt' }))
+                    setDialogStep('details')
+                  }}
+                >
+                  <div className="mx-auto w-16 h-16 rounded-full bg-orange-100 flex items-center justify-center group-hover:bg-orange-200 transition-colors">
+                    <Presentation className="w-8 h-8 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-lg">PPT Template</h3>
+                    <p className="text-sm text-muted-foreground mt-1">For PowerPoint Presentations</p>
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end pt-4">
+                <Button variant="outline" onClick={() => setShowNewDialog(false)}>Cancel</Button>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="template-name">
+                  Template Name <span className="text-destructive">*</span>
+                </Label>
+                <Input
+                  id="template-name"
+                  placeholder={newTemplate.type === 'ppt' ? "e.g., Corporate Slide Deck" : "e.g., Enterprise PRD Template"}
+                  value={newTemplate.name}
+                  onChange={(e) => setNewTemplate({ ...newTemplate, name: e.target.value })}
+                />
+              </div>
+
+              {newTemplate.type === 'prd' ? (
+                <>
+                  <div className="flex justify-end">
+                    <Button variant="outline" size="sm" onClick={() => document.getElementById('dialog-file-upload')?.click()}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Upload File
+                    </Button>
+                    <input
+                      id="dialog-file-upload"
+                      type="file"
+                      accept=".md,.txt,.docx"
+                      className="hidden"
+                      onChange={handleDialogFileUpload}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="template-content">
+                      Template Content <span className="text-destructive">*</span>
+                    </Label>
+                    <Textarea
+                      id="template-content"
+                      placeholder="Paste your template content here..."
+                      value={newTemplate.content}
+                      onChange={(e) => setNewTemplate({ ...newTemplate, content: e.target.value })}
+                      rows={20}
+                      className="font-mono text-sm"
+                    />
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-4 border-2 border-dashed border-muted rounded-xl p-8 text-center">
+                  <div className="mx-auto w-12 h-12 rounded-full bg-orange-100 flex items-center justify-center mb-4">
+                    <Presentation className="w-6 h-6 text-orange-600" />
+                  </div>
+                  <h3 className="text-lg font-medium">Upload PowerPoint Template</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm mx-auto">
+                    Upload a .pptx file. The text and structure will be used to guide the generation of your presentation.
+                  </p>
+                  <div className="pt-4">
+                    <Button onClick={() => document.getElementById('dialog-ppt-upload')?.click()}>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Select PPTX File
+                    </Button>
+                    <input
+                      id="dialog-ppt-upload"
+                      type="file"
+                      accept=".pptx"
+                      className="hidden"
+                      onChange={handleDialogFileUpload}
+                    />
+                  </div>
+                  {newTemplate.content && (
+                    <div className="mt-4 p-3 bg-muted/50 rounded-lg text-sm text-green-600 flex items-center justify-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Template content processed successfully
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setDialogStep('type')
+                  }}
+                  disabled={creating}
+                >
+                  Back
+                </Button>
+                <Button onClick={createTemplate} disabled={creating || !newTemplate.name || !newTemplate.content}>
+                  {creating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Template
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </DialogContent>
-      </Dialog>
+      </Dialog >
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+      < AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog} >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -719,10 +847,11 @@ export default function TemplatesPage() {
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
-      </AlertDialog>
+      </AlertDialog >
 
       {/* Template Preview Dialog */}
-      <Dialog open={!!previewTemplate} onOpenChange={(open) => !open && setPreviewTemplate(null)}>
+      < Dialog open={!!previewTemplate
+      } onOpenChange={(open) => !open && setPreviewTemplate(null)}>
         <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
           <div className="flex flex-col h-full max-h-[90vh]">
             {/* Header */}
@@ -737,9 +866,9 @@ export default function TemplatesPage() {
 
             {/* Document Content */}
             <div className="flex-1 overflow-y-auto p-8 bg-background">
-              <div className="max-w-3xl mx-auto bg-card rounded-lg shadow-lg border p-8 md:p-12">
+              <div className={`mx-auto bg-card rounded-lg shadow-lg border p-8 md:p-12 ${previewTemplate?.type === 'ppt' ? 'aspect-video w-full max-w-4xl flex flex-col justify-center' : 'max-w-3xl'}`}>
                 {/* Document-style rendering */}
-                <div className="prose prose-sm max-w-none document-preview">
+                <div className={`prose prose-sm max-w-none document-preview ${previewTemplate?.type === 'ppt' ? 'prose-lg' : ''}`}>
                   {previewTemplate && (
                     <TemplateDocumentRenderer content={previewTemplate.content} />
                   )}
@@ -748,8 +877,8 @@ export default function TemplatesPage() {
             </div>
           </div>
         </DialogContent>
-      </Dialog>
-    </div>
+      </Dialog >
+    </div >
   )
 }
 

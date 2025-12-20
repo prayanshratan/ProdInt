@@ -6,23 +6,23 @@ import { createDefaultTemplateForUser } from '@/lib/init-default-template'
 export async function GET() {
   try {
     const session = await getSession()
-    
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    
+
     // Get user templates
     let userTemplates = await getUserTemplates(session.userId)
-    
+
     // If user has no templates, create the default one for them
     if (userTemplates.length === 0) {
       await createDefaultTemplateForUser(session.userId)
       userTemplates = await getUserTemplates(session.userId)
     }
-    
+
     return NextResponse.json({ templates: userTemplates })
   } catch (error) {
     console.error('Get templates error:', error)
@@ -36,30 +36,31 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const session = await getSession()
-    
+
     if (!session) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       )
     }
-    
-    const { name, content, isDefault } = await request.json()
-    
+
+    const { name, content, isDefault, type } = await request.json()
+
     if (!name || !content) {
       return NextResponse.json(
         { error: 'Name and content are required' },
         { status: 400 }
       )
     }
-    
+
     const template = await createTemplate({
       userId: session.userId,
       name,
       content,
+      type: type || 'prd',
       isDefault: isDefault || false,
     })
-    
+
     return NextResponse.json({ template })
   } catch (error) {
     console.error('Create template error:', error)

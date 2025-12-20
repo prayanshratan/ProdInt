@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { Users, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkles, Pencil, FileText } from 'lucide-react'
+import { Users, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkles, Pencil, FileText, ChevronDown, ChevronUp } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { FileUpload } from '@/components/FileUpload'
@@ -39,6 +39,7 @@ export default function JiraAgentPage() {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
+  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set())
 
   const copyToClipboard = async (text: string, index: number) => {
     try {
@@ -49,6 +50,23 @@ export default function JiraAgentPage() {
     } catch (error) {
       toast({ title: 'Failed to copy', variant: 'destructive' })
     }
+  }
+
+  const toggleMessageExpansion = (index: number) => {
+    setExpandedMessages(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(index)) {
+        newSet.delete(index)
+      } else {
+        newSet.add(index)
+      }
+      return newSet
+    })
+  }
+
+  // Check if a user message is long enough to be collapsible
+  const isCollapsibleMessage = (content: string) => {
+    return content.length > 150 || content.split('\n').length > 3
   }
 
   useEffect(() => {
@@ -156,10 +174,20 @@ export default function JiraAgentPage() {
 
         // If context provided, add a pending user message and start generating
         if (newChatForm.context) {
+          // Build a detailed user message with actual inputs
+          let userContent = '**Request:** Generate user stories based on the provided context.\n\n'
+          userContent += `**Context / Requirements:**\n${newChatForm.context}\n\n`
+          if (newChatForm.template) {
+            userContent += `**User Story Template:**\n${newChatForm.template}\n\n`
+          }
+          if (newChatForm.acceptanceCriteriaFormat) {
+            userContent += `**Acceptance Criteria Format:**\n${newChatForm.acceptanceCriteriaFormat}`
+          }
+
           // Create a temporary chat state with the user's message to show immediately
           const pendingMessage = {
             role: 'user',
-            content: newChatForm.context,
+            content: userContent.trim(),
             timestamp: new Date().toISOString()
           }
           const chatWithPendingMessage = {
@@ -174,7 +202,7 @@ export default function JiraAgentPage() {
 
           // Now send the actual message (don't await to keep UI responsive)
           sendMessage(
-            newChatForm.context,
+            userContent.trim(),
             data.chat.id,
             newChatForm.context,
             newChatForm.template,
@@ -534,7 +562,7 @@ export default function JiraAgentPage() {
                               </div>
 
                               {/* Message Content */}
-                              <div className={`flex-1 space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                              <div className={`flex-1 min-w-0 space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
                                 <div className="flex items-center gap-2">
                                   <span className="text-sm font-semibold">
                                     {msg.role === 'user' ? 'You' : 'ProdInt AI'}
@@ -550,13 +578,47 @@ export default function JiraAgentPage() {
                                 </div>
 
                                 {/* Message Text */}
-                                <div className={`max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
+                                <div className="w-full">
                                   {msg.role === 'assistant' ? (
                                     <MarkdownRenderer content={msg.content} />
                                   ) : (
-                                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
-                                      {msg.content}
-                                    </p>
+                                    <>
+                                      {isCollapsibleMessage(msg.content) ? (
+                                        <div className="space-y-2">
+                                          <div className="relative">
+                                            <div
+                                              className={`text-sm text-foreground leading-relaxed bg-muted/30 rounded-lg p-3 border border-border ${!expandedMessages.has(idx) ? 'max-h-32 overflow-hidden' : ''
+                                                }`}
+                                            >
+                                              <MarkdownRenderer content={msg.content} />
+                                            </div>
+                                            {!expandedMessages.has(idx) && (
+                                              <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-muted/90 via-muted/50 to-transparent rounded-b-lg pointer-events-none" />
+                                            )}
+                                          </div>
+                                          <button
+                                            onClick={() => toggleMessageExpansion(idx)}
+                                            className="flex items-center gap-1 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                                          >
+                                            {expandedMessages.has(idx) ? (
+                                              <>
+                                                <ChevronUp className="h-3.5 w-3.5" />
+                                                Show less
+                                              </>
+                                            ) : (
+                                              <>
+                                                <ChevronDown className="h-3.5 w-3.5" />
+                                                Show more
+                                              </>
+                                            )}
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
+                                          {msg.content}
+                                        </p>
+                                      )}
+                                    </>
                                   )}
                                 </div>
 

@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { Users, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkles, Pencil } from 'lucide-react'
+import { Users, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkles, Pencil, FileText } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { FileUpload } from '@/components/FileUpload'
@@ -257,6 +257,56 @@ export default function JiraAgentPage() {
     return content
   }
 
+  const downloadMessage = async (content: string, format: 'md' | 'docx' = 'md', messageIndex: number) => {
+    const filename = `${currentChat.title}-v${messageIndex}`
+
+    // Strip conversational preamble before downloading
+    const cleanContent = stripPreamble(content)
+
+    if (format === 'docx') {
+      try {
+        const res = await fetch('/api/convert/markdown-to-docx', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            markdown: cleanContent,
+            title: filename,
+          }),
+        })
+
+        if (res.ok) {
+          const blob = await res.blob()
+          const url = URL.createObjectURL(blob)
+          const a = document.createElement('a')
+          a.href = url
+          a.download = `${filename}.docx`
+          document.body.appendChild(a)
+          a.click()
+          document.body.removeChild(a)
+          URL.revokeObjectURL(url)
+
+          toast({ title: 'Success', description: 'User stories downloaded as DOCX' })
+        } else {
+          toast({ title: 'Error', description: 'Failed to convert to DOCX', variant: 'destructive' })
+        }
+      } catch (error) {
+        toast({ title: 'Error', description: 'Failed to download DOCX', variant: 'destructive' })
+      }
+    } else {
+      const blob = new Blob([cleanContent], { type: 'text/markdown' })
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `${filename}.md`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      URL.revokeObjectURL(url)
+
+      toast({ title: 'Success', description: 'User stories downloaded as Markdown' })
+    }
+  }
+
   const downloadUserStories = async (format: 'md' | 'docx' = 'md') => {
     if (!currentChat?.messages || currentChat.messages.length === 0) {
       toast({ title: 'Error', description: 'No user stories to download', variant: 'destructive' })
@@ -415,18 +465,6 @@ export default function JiraAgentPage() {
                       {currentChat.messages.length} messages
                     </CardDescription>
                   </div>
-                  {currentChat.messages.length > 0 && (
-                    <div className="flex gap-2">
-                      <Button onClick={() => downloadUserStories('md')} variant="outline" size="sm" className="shadow-sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        MD
-                      </Button>
-                      <Button onClick={() => downloadUserStories('docx')} variant="outline" size="sm" className="shadow-sm">
-                        <Download className="h-4 w-4 mr-2" />
-                        DOCX
-                      </Button>
-                    </div>
-                  )}
                 </div>
               </CardHeader>
               <CardContent className="p-0">
@@ -447,75 +485,112 @@ export default function JiraAgentPage() {
                       </div>
                     ) : (
                       <div className="max-w-3xl mx-auto py-8 px-4">
-                        {currentChat.messages.map((msg: any, idx: number) => (
-                          <div
-                            key={idx}
-                            className={`group flex gap-4 mb-8 animate-fade-in ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
-                              }`}
-                          >
-                            {/* Avatar */}
-                            <div className="flex-shrink-0">
-                              <div
-                                className={`flex h-8 w-8 items-center justify-center rounded-lg ${msg.role === 'user'
-                                  ? 'bg-primary/10 text-primary'
-                                  : 'bg-gradient-to-br from-primary to-purple-600 text-white'
-                                  }`}
-                              >
-                                {msg.role === 'user' ? (
-                                  <User className="h-4 w-4" />
-                                ) : (
-                                  <Sparkles className="h-4 w-4" />
-                                )}
-                              </div>
-                            </div>
+                        {currentChat.messages.map((msg: any, idx: number) => {
+                          // Count AI messages for versioning
+                          const aiMessageIndex = currentChat.messages
+                            .slice(0, idx + 1)
+                            .filter((m: any) => m.role === 'assistant').length
+                          const isUserStoryMessage = msg.role === 'assistant' && msg.content.length > 100
 
-                            {/* Message Content */}
-                            <div className={`flex-1 space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold">
-                                  {msg.role === 'user' ? 'You' : 'ProdInt AI'}
-                                </span>
-                                <span className="text-xs text-muted-foreground">
-                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                </span>
+                          return (
+                            <div
+                              key={idx}
+                              className={`group flex gap-4 mb-8 animate-fade-in ${msg.role === 'user' ? 'flex-row-reverse' : 'flex-row'
+                                }`}
+                            >
+                              {/* Avatar */}
+                              <div className="flex-shrink-0">
+                                <div
+                                  className={`flex h-8 w-8 items-center justify-center rounded-lg ${msg.role === 'user'
+                                    ? 'bg-primary/10 text-primary'
+                                    : 'bg-gradient-to-br from-primary to-purple-600 text-white'
+                                    }`}
+                                >
+                                  {msg.role === 'user' ? (
+                                    <User className="h-4 w-4" />
+                                  ) : (
+                                    <Sparkles className="h-4 w-4" />
+                                  )}
+                                </div>
                               </div>
 
-                              {/* Message Text */}
-                              <div className={`max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
-                                {msg.role === 'assistant' ? (
-                                  <MarkdownRenderer content={msg.content} />
-                                ) : (
-                                  <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
-                                    {msg.content}
-                                  </p>
-                                )}
-                              </div>
+                              {/* Message Content */}
+                              <div className={`flex-1 space-y-3 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-semibold">
+                                    {msg.role === 'user' ? 'You' : 'ProdInt AI'}
+                                  </span>
+                                  {isUserStoryMessage && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium">
+                                      v{aiMessageIndex}
+                                    </span>
+                                  )}
+                                  <span className="text-xs text-muted-foreground">
+                                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                  </span>
+                                </div>
 
-                              {/* Action Bar - Always visible for AI messages */}
-                              {msg.role === 'assistant' && (
-                                <div className="flex items-center gap-2 pt-1 border-t border-border">
-                                  <button
-                                    onClick={() => copyToClipboard(msg.content, idx)}
-                                    className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
-                                    title="Copy message"
-                                  >
-                                    {copiedIndex === idx ? (
+                                {/* Message Text */}
+                                <div className={`max-w-none ${msg.role === 'user' ? 'text-right' : ''}`}>
+                                  {msg.role === 'assistant' ? (
+                                    <MarkdownRenderer content={msg.content} />
+                                  ) : (
+                                    <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed m-0">
+                                      {msg.content}
+                                    </p>
+                                  )}
+                                </div>
+
+                                {/* Action Bar - Always visible for AI messages */}
+                                {msg.role === 'assistant' && (
+                                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                                    {/* Copy Button */}
+                                    <button
+                                      onClick={() => copyToClipboard(msg.content, idx)}
+                                      className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                                      title="Copy message"
+                                    >
+                                      {copiedIndex === idx ? (
+                                        <>
+                                          <Check className="h-3.5 w-3.5 text-green-600" />
+                                          <span className="text-green-600">Copied</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Copy className="h-3.5 w-3.5" />
+                                          <span>Copy</span>
+                                        </>
+                                      )}
+                                    </button>
+
+                                    {/* Download Buttons - Only for substantial messages */}
+                                    {isUserStoryMessage && (
                                       <>
-                                        <Check className="h-3.5 w-3.5 text-green-600" />
-                                        <span className="text-green-600">Copied</span>
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Copy className="h-3.5 w-3.5" />
-                                        <span>Copy</span>
+                                        <div className="w-px h-4 bg-gray-200" />
+                                        <button
+                                          onClick={() => downloadMessage(msg.content, 'md', aiMessageIndex)}
+                                          className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                                          title="Download as Markdown"
+                                        >
+                                          <Download className="h-3.5 w-3.5" />
+                                          <span>MD</span>
+                                        </button>
+                                        <button
+                                          onClick={() => downloadMessage(msg.content, 'docx', aiMessageIndex)}
+                                          className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                                          title="Download as DOCX"
+                                        >
+                                          <FileText className="h-3.5 w-3.5" />
+                                          <span>DOCX</span>
+                                        </button>
                                       </>
                                     )}
-                                  </button>
-                                </div>
-                              )}
+                                  </div>
+                                )}
+                              </div>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
 
                         {/* Loading State */}
                         {generating && (

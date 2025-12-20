@@ -1,9 +1,9 @@
-import { 
-  Document, 
-  Paragraph, 
-  TextRun, 
-  HeadingLevel, 
-  AlignmentType, 
+import {
+  Document,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  AlignmentType,
   Packer,
   Table,
   TableCell,
@@ -25,11 +25,11 @@ function parseInlineFormatting(text: string): TextRun[] {
 
   const runs: TextRun[] = []
   let currentIndex = 0
-  
+
   // Combined pattern to match all inline formats
   // Order is important: longer patterns first
   const pattern = /(\*\*\*[^*]+\*\*\*|___[^_]+___|~~[^~]+~~|\*\*[^*]+\*\*|__[^_]+__|`[^`]+`|\*[^*]+\*|_[^_]+_|\[([^\]]+)\]\(([^)]+)\))/g
-  
+
   let match
   while ((match = pattern.exec(text)) !== null) {
     // Add text before the match
@@ -39,11 +39,11 @@ function parseInlineFormatting(text: string): TextRun[] {
         runs.push(new TextRun({ text: beforeText }))
       }
     }
-    
+
     const fullMatch = match[0]
     let content = ''
     const runOptions: any = {}
-    
+
     // Check what type of formatting this is
     if (fullMatch.startsWith('***') && fullMatch.endsWith('***')) {
       // Bold + Italic
@@ -90,15 +90,15 @@ function parseInlineFormatting(text: string): TextRun[] {
         runOptions.underline = { type: UnderlineType.SINGLE }
       }
     }
-    
+
     if (content) {
       runOptions.text = content
       runs.push(new TextRun(runOptions))
     }
-    
+
     currentIndex = match.index + fullMatch.length
   }
-  
+
   // Add any remaining text after the last match
   if (currentIndex < text.length) {
     const remainingText = text.substring(currentIndex)
@@ -106,7 +106,7 @@ function parseInlineFormatting(text: string): TextRun[] {
       runs.push(new TextRun({ text: remainingText }))
     }
   }
-  
+
   // If no formatting was found, return the original text
   return runs.length > 0 ? runs : [new TextRun({ text })]
 }
@@ -177,7 +177,7 @@ async function htmlToDocxAdvanced(html: string, title: string): Promise<Buffer> 
         }
       }
     })
-    
+
     return Buffer.from(buffer)
   } catch (error) {
     console.error('Error in htmlToDocxAdvanced:', error)
@@ -191,14 +191,14 @@ async function htmlToDocxAdvanced(html: string, title: string): Promise<Buffer> 
  */
 function markdownToHtml(markdown: string): string {
   let html = markdown
-  
+
   // First, protect code blocks from being processed
   const codeBlocks: string[] = []
   html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
     codeBlocks.push(code)
     return `<<<CODE_BLOCK_${codeBlocks.length - 1}>>>`
   })
-  
+
   // Convert headings FIRST (must be done before other conversions)
   html = html.replace(/^###### (.+)$/gm, '<h6 style="font-size: 12px; font-weight: bold; margin: 8px 0;">$1</h6>')
   html = html.replace(/^##### (.+)$/gm, '<h5 style="font-size: 14px; font-weight: bold; margin: 10px 0;">$1</h5>')
@@ -206,15 +206,15 @@ function markdownToHtml(markdown: string): string {
   html = html.replace(/^### (.+)$/gm, '<h3 style="font-size: 18px; font-weight: bold; margin: 14px 0;">$1</h3>')
   html = html.replace(/^## (.+)$/gm, '<h2 style="font-size: 22px; font-weight: bold; margin: 16px 0;">$1</h2>')
   html = html.replace(/^# (.+)$/gm, '<h1 style="font-size: 26px; font-weight: bold; margin: 18px 0;">$1</h1>')
-  
+
   // Convert tables BEFORE inline formatting (before other conversions)
   const tableRegex = /\n?\|(.+)\|[\r\n]+\|[-:| ]+\|[\r\n]+((?:\|.+\|[\r\n]*)+)/g
   html = html.replace(tableRegex, (match, header, body) => {
     const headerCells = header.split('|').filter((c: string) => c.trim()).map((cell: string) => cell.trim())
-    const bodyRows = body.trim().split('\n').filter((r: string) => r.trim()).map((row: string) => 
+    const bodyRows = body.trim().split('\n').filter((r: string) => r.trim()).map((row: string) =>
       row.split('|').filter((c: string) => c.trim()).slice(0, headerCells.length).map((cell: string) => cell.trim())
     )
-    
+
     let table = '\n<table border="1" style="border-collapse: collapse; width: 100%; margin: 10px 0;">\n'
     table += '  <thead>\n    <tr style="background-color: #f2f2f2;">\n'
     headerCells.forEach((cell: string) => {
@@ -231,14 +231,14 @@ function markdownToHtml(markdown: string): string {
       table += '    </tr>\n'
     })
     table += '  </tbody>\n</table>\n'
-    
+
     return table
   })
-  
+
   // Convert horizontal rules BEFORE list processing
   html = html.replace(/^---+$/gm, '<hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">')
   html = html.replace(/^\*\*\*+$/gm, '<hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">')
-  
+
   // Convert LISTS BEFORE inline formatting (critical fix!)
   // This ensures bullet points like "* **Bold text**" are detected as lists first
   const lines = html.split('\n')
@@ -246,11 +246,11 @@ function markdownToHtml(markdown: string): string {
   let inUnorderedList = false
   let inOrderedList = false
   let currentIndent = 0
-  
+
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i]
     const trimmedLine = line.trim()
-    
+
     // Skip empty lines but track list state
     if (trimmedLine === '') {
       if (inUnorderedList) {
@@ -264,7 +264,7 @@ function markdownToHtml(markdown: string): string {
       processedLines.push(line)
       continue
     }
-    
+
     // Skip lines that are already HTML tags (headings, hr, etc.)
     if (trimmedLine.startsWith('<')) {
       if (inUnorderedList) {
@@ -278,14 +278,14 @@ function markdownToHtml(markdown: string): string {
       processedLines.push(line)
       continue
     }
-    
+
     // Check for unordered list (must match start of line, allowing leading whitespace for nesting)
     const unorderedMatch = line.match(/^(\s*)([\*\-\+])\s+(.+)$/)
-    
+
     // Check for ordered list (only at start of line, not within content like "1. Cost of inaction:")
     // Only match if it's at the beginning of content (no leading text) and the number is reasonable (1-999)
     const orderedMatch = line.match(/^(\s*)(\d{1,3})\.\s+(.+)$/)
-    
+
     if (unorderedMatch) {
       const [, indent, , content] = unorderedMatch
       if (!inUnorderedList) {
@@ -327,13 +327,13 @@ function markdownToHtml(markdown: string): string {
       processedLines.push(formattedLine)
     }
   }
-  
+
   // Close any remaining open lists
   if (inUnorderedList) processedLines.push('</ul>')
   if (inOrderedList) processedLines.push('</ol>')
-  
+
   html = processedLines.join('\n')
-  
+
   // Restore code blocks with styling
   codeBlocks.forEach((code, index) => {
     html = html.replace(
@@ -341,7 +341,7 @@ function markdownToHtml(markdown: string): string {
       `<pre style="background-color: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #ddd;"><code style="font-family: monospace; font-size: 13px;">${code.trim()}</code></pre>`
     )
   })
-  
+
   // Convert paragraphs (lines that aren't already HTML tags)
   const finalLines = html.split('\n')
   html = finalLines.map(line => {
@@ -350,11 +350,11 @@ function markdownToHtml(markdown: string): string {
     if (trimmed.startsWith('<') || line.includes('</') || (trimmed.includes('<') && trimmed.includes('>'))) return line
     return `<p style="margin: 10px 0; line-height: 1.6;">${line}</p>`
   }).join('\n')
-  
+
   // Clean up excessive whitespace
   html = html.replace(/\n{3,}/g, '\n\n')
   html = html.replace(/<p[^>]*><\/p>/g, '')
-  
+
   return html
 }
 
@@ -364,7 +364,7 @@ function markdownToHtml(markdown: string): string {
  */
 function applyInlineFormatting(text: string): string {
   let result = text
-  
+
   // Convert bold and italic (bold first to avoid conflicts)
   // Bold + Italic
   result = result.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
@@ -375,16 +375,16 @@ function applyInlineFormatting(text: string): string {
   // Italic (be careful not to match list bullets)
   result = result.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>')
   result = result.replace(/(?<!_)_([^_]+?)_(?!_)/g, '<em>$1</em>')
-  
+
   // Convert strikethrough
   result = result.replace(/~~(.+?)~~/g, '<s>$1</s>')
-  
+
   // Convert inline code
   result = result.replace(/`([^`]+?)`/g, '<code style="background-color: #f4f4f4; padding: 2px 6px; border-radius: 3px; font-family: monospace;">$1</code>')
-  
+
   // Convert links
   result = result.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" style="color: #0066cc; text-decoration: underline;">$1</a>')
-  
+
   return result
 }
 
@@ -396,17 +396,17 @@ async function markdownToDocxInternal(markdown: string, title: string): Promise<
   const normalizedMarkdown = markdown.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
   const lines = normalizedMarkdown.split('\n')
   const children: (Paragraph | Table)[] = []
-  
+
   let i = 0
   let inCodeBlock = false
   let codeBlockContent: string[] = []
   let inTable = false
   let tableRows: string[][] = []
-  
+
   while (i < lines.length) {
     const line = lines[i]
     const trimmedLine = line.trim()
-    
+
     // Handle code blocks
     if (trimmedLine.startsWith('```')) {
       if (inCodeBlock) {
@@ -433,42 +433,56 @@ async function markdownToDocxInternal(markdown: string, title: string): Promise<
       i++
       continue
     }
-    
+
     if (inCodeBlock) {
       codeBlockContent.push(line)
       i++
       continue
     }
-    
+
     // Handle tables
     if (trimmedLine.startsWith('|') && trimmedLine.endsWith('|')) {
       if (!inTable) {
         inTable = true
         tableRows = []
       }
-      
+
       const cells = trimmedLine
         .split('|')
         .slice(1, -1)
         .map(cell => cell.trim())
-      
+
       // Skip separator rows (|---|---|, |:---|:---:|, etc.)
       // Check if this is a separator row (contains only dashes, colons, and spaces)
       const isSeparator = cells.every(cell => /^[-:\s]+$/.test(cell))
-      
+
       if (!isSeparator && cells.length > 0) {
         tableRows.push(cells)
       }
-      
+
       i++
-      
+
       // Check if next line is still table
       if (i >= lines.length || !lines[i].trim().startsWith('|')) {
         // End of table, create table element
         if (tableRows.length > 0) {
+          // Calculate maximum number of columns across all rows
+          const maxColumns = Math.max(...tableRows.map(row => row.length))
+
+          // Calculate column width in twips (1 inch = 1440 twips)
+          // Page width is about 8.5 inches, minus 2 inches for margins = 6.5 inches = 9360 twips
+          const pageContentWidth = 9360
+          const columnWidth = Math.floor(pageContentWidth / maxColumns)
+
           const tableRowElements = tableRows.map((cells, rowIndex) => {
+            // Normalize row to have maxColumns cells (pad with empty cells if needed)
+            const normalizedCells = [...cells]
+            while (normalizedCells.length < maxColumns) {
+              normalizedCells.push('')
+            }
+
             return new TableRow({
-              children: cells.map(cellText => {
+              children: normalizedCells.map(cellText => {
                 return new TableCell({
                   children: [
                     new Paragraph({
@@ -476,7 +490,7 @@ async function markdownToDocxInternal(markdown: string, title: string): Promise<
                     }),
                   ],
                   shading: rowIndex === 0 ? { fill: 'e0e0e0' } : undefined,
-                  width: { size: 100 / cells.length, type: WidthType.PERCENTAGE },
+                  width: { size: columnWidth, type: WidthType.DXA },
                   margins: {
                     top: 100,
                     bottom: 100,
@@ -487,11 +501,12 @@ async function markdownToDocxInternal(markdown: string, title: string): Promise<
               }),
             })
           })
-          
+
           children.push(
             new Table({
               rows: tableRowElements,
               width: { size: 100, type: WidthType.PERCENTAGE },
+              columnWidths: Array(maxColumns).fill(columnWidth),
               borders: {
                 top: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
                 bottom: { style: BorderStyle.SINGLE, size: 1, color: '000000' },
@@ -509,7 +524,7 @@ async function markdownToDocxInternal(markdown: string, title: string): Promise<
       }
       continue
     }
-    
+
     // Headings
     if (trimmedLine.startsWith('##### ')) {
       children.push(
@@ -618,7 +633,7 @@ async function markdownToDocxInternal(markdown: string, title: string): Promise<
         })
       )
     }
-    
+
     i++
   }
 
@@ -633,18 +648,33 @@ async function markdownToDocxInternal(markdown: string, title: string): Promise<
               format: 'decimal',
               text: '%1.',
               alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: {
+                  indent: { left: 720, hanging: 360 },
+                },
+              },
             },
             {
               level: 1,
               format: 'decimal',
               text: '%2.',
               alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: {
+                  indent: { left: 1440, hanging: 360 },
+                },
+              },
             },
             {
               level: 2,
               format: 'decimal',
               text: '%3.',
               alignment: AlignmentType.LEFT,
+              style: {
+                paragraph: {
+                  indent: { left: 2160, hanging: 360 },
+                },
+              },
             },
           ],
         },
@@ -675,7 +705,7 @@ async function markdownToDocxInternal(markdown: string, title: string): Promise<
  */
 function htmlToMarkdown(html: string): string {
   let markdown = html
-  
+
   // Convert headings
   markdown = markdown.replace(/<h1[^>]*>(.*?)<\/h1>/gi, '\n# $1\n')
   markdown = markdown.replace(/<h2[^>]*>(.*?)<\/h2>/gi, '\n## $1\n')
@@ -683,38 +713,38 @@ function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<h4[^>]*>(.*?)<\/h4>/gi, '\n#### $1\n')
   markdown = markdown.replace(/<h5[^>]*>(.*?)<\/h5>/gi, '\n##### $1\n')
   markdown = markdown.replace(/<h6[^>]*>(.*?)<\/h6>/gi, '\n###### $1\n')
-  
+
   // Convert bold
   markdown = markdown.replace(/<strong[^>]*>(.*?)<\/strong>/gi, '**$1**')
   markdown = markdown.replace(/<b[^>]*>(.*?)<\/b>/gi, '**$1**')
-  
+
   // Convert italic
   markdown = markdown.replace(/<em[^>]*>(.*?)<\/em>/gi, '*$1*')
   markdown = markdown.replace(/<i[^>]*>(.*?)<\/i>/gi, '*$1*')
-  
+
   // Convert underline (not standard markdown, but we can use bold)
   markdown = markdown.replace(/<u[^>]*>(.*?)<\/u>/gi, '**$1**')
-  
+
   // Convert strikethrough
   markdown = markdown.replace(/<s[^>]*>(.*?)<\/s>/gi, '~~$1~~')
   markdown = markdown.replace(/<strike[^>]*>(.*?)<\/strike>/gi, '~~$1~~')
   markdown = markdown.replace(/<del[^>]*>(.*?)<\/del>/gi, '~~$1~~')
-  
+
   // Convert code
   markdown = markdown.replace(/<code[^>]*>(.*?)<\/code>/gi, '`$1`')
-  
+
   // Convert links
   markdown = markdown.replace(/<a[^>]*href=["']([^"']*)["'][^>]*>(.*?)<\/a>/gi, '[$2]($1)')
-  
+
   // Convert lists - unordered
   markdown = markdown.replace(/<ul[^>]*>/gi, '\n')
   markdown = markdown.replace(/<\/ul>/gi, '\n')
   markdown = markdown.replace(/<li[^>]*>(.*?)<\/li>/gi, '- $1\n')
-  
+
   // Convert lists - ordered (simplified - all items get numbered)
   markdown = markdown.replace(/<ol[^>]*>/gi, '\n')
   markdown = markdown.replace(/<\/ol>/gi, '\n')
-  
+
   // Convert tables
   markdown = markdown.replace(/<table[^>]*>/gi, '\n')
   markdown = markdown.replace(/<\/table>/gi, '\n')
@@ -722,48 +752,48 @@ function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/<\/thead>/gi, '')
   markdown = markdown.replace(/<tbody[^>]*>/gi, '')
   markdown = markdown.replace(/<\/tbody>/gi, '')
-  
+
   // Convert table rows and cells
   let tableRows: string[] = []
   const tableRowRegex = /<tr[^>]*>(.*?)<\/tr>/gis
   let rowMatch
-  
+
   while ((rowMatch = tableRowRegex.exec(markdown)) !== null) {
     const rowContent = rowMatch[1]
     const cells: string[] = []
     const cellRegex = /<t[hd][^>]*>(.*?)<\/t[hd]>/gi
     let cellMatch
-    
+
     while ((cellMatch = cellRegex.exec(rowContent)) !== null) {
       cells.push(cellMatch[1].trim())
     }
-    
+
     if (cells.length > 0) {
       tableRows.push('| ' + cells.join(' | ') + ' |')
     }
   }
-  
+
   // Remove original table tags and insert markdown table
   markdown = markdown.replace(/<tr[^>]*>.*?<\/tr>/gis, '')
-  
+
   if (tableRows.length > 0) {
     const separator = '|' + ' --- |'.repeat(tableRows[0].split('|').length - 2)
     tableRows.splice(1, 0, separator)
     markdown = markdown.replace(/<table[^>]*>.*?<\/table>/gis, '\n' + tableRows.join('\n') + '\n')
   }
-  
+
   // Convert paragraphs
   markdown = markdown.replace(/<p[^>]*>(.*?)<\/p>/gi, '\n$1\n')
-  
+
   // Convert line breaks
   markdown = markdown.replace(/<br\s*\/?>/gi, '\n')
-  
+
   // Convert horizontal rules
   markdown = markdown.replace(/<hr\s*\/?>/gi, '\n---\n')
-  
+
   // Remove remaining HTML tags
   markdown = markdown.replace(/<[^>]+>/g, '')
-  
+
   // Decode HTML entities
   markdown = markdown.replace(/&nbsp;/g, ' ')
   markdown = markdown.replace(/&amp;/g, '&')
@@ -771,11 +801,11 @@ function htmlToMarkdown(html: string): string {
   markdown = markdown.replace(/&gt;/g, '>')
   markdown = markdown.replace(/&quot;/g, '"')
   markdown = markdown.replace(/&#39;/g, "'")
-  
+
   // Clean up extra whitespace and newlines
   markdown = markdown.replace(/\n\s*\n\s*\n/g, '\n\n')
   markdown = markdown.trim()
-  
+
   return markdown
 }
 
@@ -810,15 +840,15 @@ export async function docxToText(buffer: Buffer): Promise<string> {
       // Preserve as much formatting as possible
       preserveEmptyParagraphs: true,
     })
-    
+
     // Add a wrapper to ensure proper document structure
     let html = result.value
-    
+
     // If the HTML doesn't start with proper tags, wrap it
     if (!html.trim().startsWith('<')) {
       html = `<div>${html}</div>`
     }
-    
+
     // Return HTML directly - preserves all formatting
     return html
   } catch (error) {

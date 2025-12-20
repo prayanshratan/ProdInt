@@ -449,7 +449,7 @@ export async function generatePPT(
   conversationHistory: Array<{ role: string; content: string }>
 ): Promise<string> {
   const genAI = getGeminiClient(apiKey)
-  const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
+  const model = genAI.getGenerativeModel({ model: 'gemma-3-27b-it' })
 
   const systemInstructions = getSystemInstructions()
 

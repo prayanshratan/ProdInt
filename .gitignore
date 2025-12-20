@@ -33,3 +33,7 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# data files (local data, should not be committed)
+/data/chats.json
+/data/templates.json
+/data/users.json

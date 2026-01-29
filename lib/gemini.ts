@@ -528,11 +528,6 @@ ${syntaxRules}
 
   prompt += `\n=== TASK ===
 Generate a professional, engaging presentation based on the above information.
-CRITICAL: You MUST write actual content (bullet points) for EVERY single slide.
-Do NOT produce empty slides with just titles.
-Fill each slide with relevant, high-quality information derived from the "PRESENTATION TOPIC/CONTENT".
-
-Content Guidelines:
 1. Clear and concise
 2. Visually scannable (short bullet points)
 3. Logically structured

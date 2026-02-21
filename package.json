@@ -10,6 +10,7 @@
     "postinstall": "prisma generate",
     "db:push": "dotenv -e .env.local -- prisma db push",
     "db:migrate": "dotenv -e .env.local -- prisma migrate deploy",
+    "db:migrate-data": "dotenv -e .env.local -- npx tsx scripts/migrate-json-to-db.ts",
     "db:studio": "dotenv -e .env.local -- prisma studio"
   },
   "dependencies": {

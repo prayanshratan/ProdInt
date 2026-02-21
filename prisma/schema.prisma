@@ -1,0 +1,63 @@
+// This is your Prisma schema file.
+// Learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String        @id @default(cuid())
+  email             String        @unique
+  password          String
+  name              String
+  company           String?
+  designation       String?
+  apiKey            String?
+  defaultTemplateId String?
+  jiraConfig        Json?         // Stores { domain, email, apiToken }
+  createdAt         DateTime      @default(now())
+
+  chats     Chat[]
+  templates PRDTemplate[]
+}
+
+model PRDTemplate {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  content   String   @db.Text
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum ChatType {
+  prd
+  jira
+  rca
+}
+
+model Chat {
+  id          String    @id @default(cuid())
+  userId      String
+  type        ChatType
+  title       String
+  messages    Json      // Stores ChatMessage[]
+  templateId  String?
+  prdDocument String?   @db.Text
+  rcaDocument String?   @db.Text
+  rcaType     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userId, type])
+}

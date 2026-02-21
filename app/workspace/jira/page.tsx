@@ -8,11 +8,12 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useToast } from '@/hooks/use-toast'
-import { Users, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkles, Pencil, FileText, ChevronDown, ChevronUp } from 'lucide-react'
+import { Users, Send, Download, Loader2, Plus, Trash2, Copy, Check, User, Sparkles, Pencil, FileText, ChevronDown, ChevronUp, Link, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 import { FileUpload } from '@/components/FileUpload'
 import { MarkdownRenderer } from '@/components/MarkdownRenderer'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 export default function JiraAgentPage() {
   const router = useRouter()
@@ -40,6 +41,16 @@ export default function JiraAgentPage() {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
   const [expandedMessages, setExpandedMessages] = useState<Set<number>>(new Set())
+
+  // Jira integration state
+  const [jiraConnected, setJiraConnected] = useState<boolean | null>(null)
+  const [showPushToJiraDialog, setShowPushToJiraDialog] = useState(false)
+  const [jiraProjects, setJiraProjects] = useState<any[]>([])
+  const [loadingProjects, setLoadingProjects] = useState(false)
+  const [selectedProject, setSelectedProject] = useState('')
+  const [pushingToJira, setPushingToJira] = useState(false)
+  const [jiraResult, setJiraResult] = useState<any>(null)
+  const [jiraMessageContent, setJiraMessageContent] = useState('')
 
   const copyToClipboard = async (text: string, index: number) => {
     try {
@@ -71,6 +82,7 @@ export default function JiraAgentPage() {
 
   useEffect(() => {
     fetchChats()
+    checkJiraConnection()
   }, [])
 
   // Auto-select chat from query parameter
@@ -98,6 +110,67 @@ export default function JiraAgentPage() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const checkJiraConnection = async () => {
+    try {
+      const res = await fetch('/api/jira-integration/connect')
+      const data = await res.json()
+      setJiraConnected(data.connected === true)
+    } catch {
+      setJiraConnected(false)
+    }
+  }
+
+  const openPushToJira = async (messageContent: string) => {
+    setJiraMessageContent(messageContent)
+    setJiraResult(null)
+    setSelectedProject('')
+    setShowPushToJiraDialog(true)
+    setLoadingProjects(true)
+    try {
+      const res = await fetch('/api/jira-integration/projects')
+      const data = await res.json()
+      if (data.projects) {
+        setJiraProjects(data.projects)
+      } else {
+        toast({ title: 'Error', description: data.error || 'Failed to load projects', variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to load projects', variant: 'destructive' })
+    } finally {
+      setLoadingProjects(false)
+    }
+  }
+
+  const handlePushToJira = async () => {
+    if (!selectedProject) {
+      toast({ title: 'Select a project', description: 'Please select a Jira project first', variant: 'destructive' })
+      return
+    }
+    setPushingToJira(true)
+    try {
+      const res = await fetch('/api/jira-integration/create-tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectKey: selectedProject,
+          featureTitle: currentChat?.title || 'Feature',
+          markdown: jiraMessageContent,
+        }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setJiraResult(data)
+        toast({ title: '🎉 Pushed to Jira!', description: data.summary })
+      } else {
+        toast({ title: 'Error', description: data.error, variant: 'destructive' })
+      }
+    } catch {
+      toast({ title: 'Error', description: 'Failed to push to Jira', variant: 'destructive' })
+    } finally {
+      setPushingToJira(false)
+    }
   }
 
   const renameChat = async () => {
@@ -418,10 +491,28 @@ export default function JiraAgentPage() {
             Generate user stories with acceptance criteria
           </p>
         </div>
-        <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm">
-          <Plus className="h-5 w-5 mr-2" />
-          New User Story
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Jira connection status pill */}
+          {jiraConnected === true && (
+            <div className="flex items-center gap-1.5 text-xs font-medium text-green-600 bg-green-500/10 border border-green-500/20 px-3 py-1.5 rounded-full">
+              <CheckCircle className="h-3.5 w-3.5" />
+              Jira Connected
+            </div>
+          )}
+          {jiraConnected === false && (
+            <a
+              href="/workspace/api-keys"
+              className="flex items-center gap-1.5 text-xs font-medium text-amber-600 bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded-full hover:bg-amber-500/20 transition-colors"
+            >
+              <AlertCircle className="h-3.5 w-3.5" />
+              Connect Jira
+            </a>
+          )}
+          <Button onClick={() => setShowNewChatDialog(true)} size="lg" className="shadow-sm">
+            <Plus className="h-5 w-5 mr-2" />
+            New User Story
+          </Button>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-4 gap-6">
@@ -624,7 +715,7 @@ export default function JiraAgentPage() {
 
                                 {/* Action Bar - Always visible for AI messages */}
                                 {msg.role === 'assistant' && (
-                                  <div className="flex items-center gap-2 pt-1 border-t border-border">
+                                  <div className="flex items-center gap-2 pt-1 border-t border-border flex-wrap">
                                     {/* Copy Button */}
                                     <button
                                       onClick={() => copyToClipboard(msg.content, idx)}
@@ -632,19 +723,13 @@ export default function JiraAgentPage() {
                                       title="Copy message"
                                     >
                                       {copiedIndex === idx ? (
-                                        <>
-                                          <Check className="h-3.5 w-3.5 text-green-600" />
-                                          <span className="text-green-600">Copied</span>
-                                        </>
+                                        <><Check className="h-3.5 w-3.5 text-green-600" /><span className="text-green-600">Copied</span></>
                                       ) : (
-                                        <>
-                                          <Copy className="h-3.5 w-3.5" />
-                                          <span>Copy</span>
-                                        </>
+                                        <><Copy className="h-3.5 w-3.5" /><span>Copy</span></>
                                       )}
                                     </button>
 
-                                    {/* Download Buttons - Only for substantial messages */}
+                                    {/* Download + Push to Jira - Only for substantial messages */}
                                     {isUserStoryMessage && (
                                       <>
                                         <div className="w-px h-4 bg-gray-200" />
@@ -663,6 +748,25 @@ export default function JiraAgentPage() {
                                         >
                                           <FileText className="h-3.5 w-3.5" />
                                           <span>DOCX</span>
+                                        </button>
+                                        <div className="w-px h-4 bg-gray-200" />
+                                        {/* Push to Jira */}
+                                        <button
+                                          onClick={() => {
+                                            if (!jiraConnected) {
+                                              toast({ title: 'Jira not connected', description: 'Go to API Keys settings to connect your Jira account.', variant: 'destructive' })
+                                              return
+                                            }
+                                            openPushToJira(msg.content)
+                                          }}
+                                          className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors ${jiraConnected
+                                              ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                              : 'text-muted-foreground/50 cursor-not-allowed'
+                                            }`}
+                                          title={jiraConnected ? 'Push to Jira' : 'Connect Jira in API Keys settings'}
+                                        >
+                                          <Link className="h-3.5 w-3.5" />
+                                          <span>Push to Jira</span>
                                         </button>
                                       </>
                                     )}
@@ -890,6 +994,110 @@ export default function JiraAgentPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Push to Jira Dialog */}
+      <Dialog open={showPushToJiraDialog} onOpenChange={(open) => { setShowPushToJiraDialog(open); if (!open) setJiraResult(null) }}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link className="h-5 w-5 text-blue-500" />
+              Push to Jira
+            </DialogTitle>
+            <DialogDescription>
+              Create a Jira Story for this feature with sub-tasks for each user story.
+            </DialogDescription>
+          </DialogHeader>
+
+          {jiraResult ? (
+            /* Success state */
+            <div className="space-y-4 py-2">
+              <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-4 space-y-3">
+                <div className="flex items-center gap-2 text-green-700 dark:text-green-400 font-medium">
+                  <CheckCircle className="h-5 w-5" />
+                  {jiraResult.summary}
+                </div>
+                <div className="space-y-2">
+                  <a
+                    href={jiraResult.storyUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:underline font-medium"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    {jiraResult.storyKey} — {currentChat?.title}
+                  </a>
+                  <div className="ml-6 space-y-1.5 border-l-2 border-border pl-3">
+                    {jiraResult.tasks.map((task: any) => (
+                      <a
+                        key={task.key}
+                        href={task.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs text-muted-foreground hover:text-blue-600 transition-colors"
+                      >
+                        <ExternalLink className="h-3 w-3 flex-shrink-0" />
+                        <span>{task.key} — {task.title}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={() => setShowPushToJiraDialog(false)}>Done</Button>
+              </div>
+            </div>
+          ) : (
+            /* Project selection state */
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium">Jira Project</Label>
+                {loadingProjects ? (
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground py-3">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Loading projects...
+                  </div>
+                ) : (
+                  <Select value={selectedProject} onValueChange={setSelectedProject}>
+                    <SelectTrigger className="h-11">
+                      <SelectValue placeholder="Select a project..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {jiraProjects.map((p) => (
+                        <SelectItem key={p.key} value={p.key}>
+                          <span className="font-mono text-xs text-muted-foreground mr-2">[{p.key}]</span>
+                          {p.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              </div>
+
+              <div className="bg-muted/40 rounded-xl p-3 text-xs text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground">What will be created:</p>
+                <p>📋 <strong>Story:</strong> {currentChat?.title}</p>
+                <p>🔹 <strong>Sub-tasks:</strong> One per user story in this response</p>
+                <p>📝 <strong>Descriptions:</strong> Acceptance criteria added to each sub-task</p>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <Button variant="outline" onClick={() => setShowPushToJiraDialog(false)}>Cancel</Button>
+                <Button
+                  onClick={handlePushToJira}
+                  disabled={pushingToJira || !selectedProject || loadingProjects}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  {pushingToJira ? (
+                    <><Loader2 className="h-4 w-4 mr-2 animate-spin" />Creating tickets...</>
+                  ) : (
+                    <><Link className="h-4 w-4 mr-2" />Push to Jira</>
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

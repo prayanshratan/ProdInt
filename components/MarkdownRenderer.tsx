@@ -8,7 +8,14 @@ interface MarkdownRendererProps {
   className?: string
 }
 
+// Strip empty HTML anchor tags (e.g. <a id="..."></a>) that leak from HTML templates into AI output.
+// These are used as page anchors in source docs but are meaningless in the chat renderer.
+function stripAnchorTags(content: string): string {
+  return content.replace(/<a\s[^>]*><\/a>/gi, '')
+}
+
 export function MarkdownRenderer({ content, className = '' }: MarkdownRendererProps) {
+  const cleanedContent = stripAnchorTags(content)
   return (
     <div className={`markdown-content ${className}`}>
       <ReactMarkdown
@@ -172,7 +179,7 @@ export function MarkdownRenderer({ content, className = '' }: MarkdownRendererPr
           ),
         }}
       >
-        {content}
+        {cleanedContent}
       </ReactMarkdown>
     </div>
   )

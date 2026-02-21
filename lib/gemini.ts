@@ -115,35 +115,26 @@ export async function generatePRD(
   prompt += `You are an expert Product Manager tasked with writing a comprehensive Product Requirements Document (PRD).\n\n`
 
   if (template) {
-    prompt += `Use the following PRD template structure:\n\n${template}\n\n`
-
-    // CRITICAL: Tell LLM to match the template format
     if (isHtmlTemplate) {
-      prompt += `**CRITICAL FORMATTING REQUIREMENTS:**
-- The template above is in HTML format with rich formatting
-- You MUST generate your response in HTML format to preserve all formatting
-- Maintain the same HTML tags, styles, fonts, colors, and table structures as shown in the template
-- Use the exact same heading levels (<h1>, <h2>, <h3>, etc.)
-- Preserve table structures with <table>, <tr>, <td> tags
-- Keep all inline styles (style="...") to maintain fonts, colors, and formatting
-- DO NOT use Markdown syntax (**, *, |, etc.) - use HTML tags instead
-- Example: Use <strong>text</strong> NOT **text**, use <em>text</em> NOT *text*
-- Example: Use <table> NOT markdown tables with |
-- Your output should be valid HTML that can be directly rendered in a document
-
-`
+      prompt += `Use the following PRD template as a structural reference (ignore HTML tags — focus only on the section names and order):\n\n${template}\n\n`
     } else {
-      prompt += `**FORMATTING REQUIREMENTS:**
-- Generate your response in Markdown format
-- Use proper Markdown syntax for formatting
-- Use ## for headings, **bold**, *italic*, tables with |, etc.
+      prompt += `Use the following PRD template structure:\n\n${template}\n\n`
+    }
+
+    prompt += `**FORMATTING REQUIREMENTS:**
+- Generate your response in clean Markdown format
+- Use ## for main headings, ### for sub-headings
+- Use **bold** for emphasis, *italic* for secondary emphasis
+- Use markdown tables with | for tabular data
+- Use bullet points (-) and numbered lists where appropriate
+- DO NOT output any HTML tags in your response
 
 `
-    }
   } else {
     prompt += `**FORMATTING REQUIREMENTS:**
 - Generate your response in clean Markdown format
 - Use ## for headings, **bold**, *italic*, tables with |, etc.
+- DO NOT output any HTML tags in your response
 
 `
   }
@@ -371,31 +362,20 @@ export async function continueConversation(
 
   const systemInstructions = getSystemInstructions()
 
-  // Detect format from conversation history (check last assistant message)
-  const lastAssistantMessage = [...conversationHistory].reverse().find(msg => msg.role === 'assistant')
-  const isHtmlFormat = lastAssistantMessage && /<[a-z][\s\S]*>/i.test(lastAssistantMessage.content)
-
   let prompt = `${systemInstructions}\n\n`
 
   if (conversationType === 'prd') {
     prompt += `You are an expert Product Manager helping to refine a Product Requirements Document (PRD).\n\n`
     if (context?.template) {
-      prompt += `Original template structure:\n${context.template}\n\n`
+      prompt += `Original template structure (use as reference only):\n${context.template}\n\n`
     }
-
-    // CRITICAL: Maintain the same format as previous messages
-    if (isHtmlFormat) {
-      prompt += `**CRITICAL FORMATTING REQUIREMENTS:**
-- Your previous responses were in HTML format with rich formatting
-- You MUST continue using HTML format in your response
-- DO NOT switch to Markdown syntax
-- Use HTML tags: <strong>, <em>, <h1>, <h2>, <table>, etc.
-- Preserve all inline styles and formatting from previous responses
-- Example: Use <strong>text</strong> NOT **text**
-- Your output should be valid HTML that matches the previous formatting
+    prompt += `**FORMATTING REQUIREMENTS:**
+- Always respond in clean Markdown format
+- Use ## for main headings, ### for sub-headings
+- Use **bold**, *italic*, markdown tables with |, bullet points (-)
+- DO NOT output any HTML tags in your response
 
 `
-    }
   } else if (conversationType === 'rca') {
     prompt += `You are an expert Site Reliability Engineer helping to refine a Root Cause Analysis (RCA) document.\n\n`
     prompt += `**CRITICAL RULES:**

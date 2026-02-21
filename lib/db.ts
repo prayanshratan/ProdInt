@@ -1,11 +1,15 @@
-import fs from 'fs/promises'
-import path from 'path'
 import { hashSync, compareSync } from 'bcryptjs'
+import { prisma } from './prisma'
 
-const DATA_DIR = path.join(process.cwd(), 'data')
-const USERS_FILE = path.join(DATA_DIR, 'users.json')
-const TEMPLATES_FILE = path.join(DATA_DIR, 'templates.json')
-const CHATS_FILE = path.join(DATA_DIR, 'chats.json')
+// ─────────────────────────────────────────────
+// TypeScript interfaces (same as before — no app changes needed)
+// ─────────────────────────────────────────────
+
+export interface JiraConfig {
+  domain: string
+  email: string
+  apiToken: string
+}
 
 export interface User {
   id: string
@@ -16,6 +20,7 @@ export interface User {
   designation?: string
   apiKey?: string
   defaultTemplateId?: string
+  jiraConfig?: JiraConfig
   createdAt: string
 }
 
@@ -53,246 +58,236 @@ export interface Chat {
   updatedAt: string
 }
 
-// Initialize data directory and files
-async function initDB() {
-  try {
-    await fs.mkdir(DATA_DIR, { recursive: true })
-    
-    try {
-      await fs.access(USERS_FILE)
-    } catch {
-      await fs.writeFile(USERS_FILE, JSON.stringify([]))
-    }
-    
-    try {
-      await fs.access(TEMPLATES_FILE)
-    } catch {
-      await fs.writeFile(TEMPLATES_FILE, JSON.stringify([]))
-    }
-    
-    try {
-      await fs.access(CHATS_FILE)
-    } catch {
-      await fs.writeFile(CHATS_FILE, JSON.stringify([]))
-    }
-  } catch (error) {
-    console.error('Error initializing database:', error)
+// ─────────────────────────────────────────────
+// Mappers: Prisma types → our TypeScript interfaces
+// ─────────────────────────────────────────────
+
+function mapUser(u: any): User {
+  return {
+    id: u.id,
+    email: u.email,
+    password: u.password,
+    name: u.name,
+    company: u.company ?? undefined,
+    designation: u.designation ?? undefined,
+    apiKey: u.apiKey ?? undefined,
+    defaultTemplateId: u.defaultTemplateId ?? undefined,
+    jiraConfig: u.jiraConfig ? (u.jiraConfig as JiraConfig) : undefined,
+    createdAt: u.createdAt.toISOString(),
   }
 }
 
+function mapTemplate(t: any): PRDTemplate {
+  return {
+    id: t.id,
+    userId: t.userId,
+    name: t.name,
+    content: t.content,
+    isDefault: t.isDefault,
+    createdAt: t.createdAt.toISOString(),
+  }
+}
+
+function mapChat(c: any): Chat {
+  return {
+    id: c.id,
+    userId: c.userId,
+    type: c.type as Chat['type'],
+    title: c.title,
+    messages: (c.messages as ChatMessage[]) ?? [],
+    templateId: c.templateId ?? undefined,
+    prdDocument: c.prdDocument ?? undefined,
+    rcaDocument: c.rcaDocument ?? undefined,
+    rcaType: c.rcaType as Chat['rcaType'] ?? undefined,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+  }
+}
+
+// ─────────────────────────────────────────────
 // User operations
+// ─────────────────────────────────────────────
+
 export async function createUser(userData: Omit<User, 'id' | 'createdAt'>): Promise<User> {
-  await initDB()
-  
-  const users = await getUsers()
-  
-  // Check if user already exists
-  const existingUser = users.find(u => u.email === userData.email)
-  if (existingUser) {
-    throw new Error('User already exists')
-  }
-  
+  const existing = await prisma.user.findUnique({ where: { email: userData.email } })
+  if (existing) throw new Error('User already exists')
+
   const hashedPassword = hashSync(userData.password, 10)
-  
-  const newUser: User = {
-    ...userData,
-    id: Date.now().toString(),
-    password: hashedPassword,
-    createdAt: new Date().toISOString(),
-  }
-  
-  users.push(newUser)
-  await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2))
-  
-  return newUser
+
+  const user = await prisma.user.create({
+    data: {
+      email: userData.email,
+      password: hashedPassword,
+      name: userData.name,
+      company: userData.company,
+      designation: userData.designation,
+      apiKey: userData.apiKey,
+      defaultTemplateId: userData.defaultTemplateId,
+      jiraConfig: userData.jiraConfig ? (userData.jiraConfig as any) : undefined,
+    },
+  })
+
+  return mapUser(user)
 }
 
 export async function getUsers(): Promise<User[]> {
-  await initDB()
-  try {
-    const data = await fs.readFile(USERS_FILE, 'utf-8')
-    return JSON.parse(data)
-  } catch {
-    return []
-  }
+  const users = await prisma.user.findMany({ orderBy: { createdAt: 'asc' } })
+  return users.map(mapUser)
 }
 
 export async function getUserByEmail(email: string): Promise<User | null> {
-  const users = await getUsers()
-  return users.find(u => u.email === email) || null
+  const user = await prisma.user.findUnique({ where: { email } })
+  return user ? mapUser(user) : null
 }
 
 export async function getUserById(id: string): Promise<User | null> {
-  const users = await getUsers()
-  return users.find(u => u.id === id) || null
+  const user = await prisma.user.findUnique({ where: { id } })
+  return user ? mapUser(user) : null
 }
 
 export async function updateUser(id: string, updates: Partial<User>): Promise<User> {
-  await initDB()
-  const users = await getUsers()
-  const index = users.findIndex(u => u.id === id)
-  
-  if (index === -1) {
-    throw new Error('User not found')
+  const data: any = {}
+  if (updates.name !== undefined) data.name = updates.name
+  if (updates.company !== undefined) data.company = updates.company
+  if (updates.designation !== undefined) data.designation = updates.designation
+  if (updates.apiKey !== undefined) data.apiKey = updates.apiKey
+  if (updates.defaultTemplateId !== undefined) data.defaultTemplateId = updates.defaultTemplateId
+  if (updates.jiraConfig !== undefined) {
+    data.jiraConfig = updates.jiraConfig as any
   }
-  
-  users[index] = { ...users[index], ...updates }
-  await fs.writeFile(USERS_FILE, JSON.stringify(users, null, 2))
-  
-  return users[index]
+  if (updates.password !== undefined) data.password = updates.password
+
+  const user = await prisma.user.update({ where: { id }, data })
+  return mapUser(user)
 }
 
 export async function verifyPassword(email: string, password: string): Promise<User | null> {
-  const user = await getUserByEmail(email)
+  const user = await prisma.user.findUnique({ where: { email } })
   if (!user) return null
-  
   const isValid = compareSync(password, user.password)
-  return isValid ? user : null
+  return isValid ? mapUser(user) : null
 }
 
+// ─────────────────────────────────────────────
 // Template operations
+// ─────────────────────────────────────────────
+
 export async function createTemplate(templateData: Omit<PRDTemplate, 'id' | 'createdAt'>): Promise<PRDTemplate> {
-  await initDB()
-  
-  const templates = await getTemplates()
-  
-  // If this is set as default, unset other defaults for this user
+  // If this is set as default, unset other defaults for this user first
   if (templateData.isDefault) {
-    for (const template of templates) {
-      if (template.userId === templateData.userId && template.isDefault) {
-        template.isDefault = false
-      }
-    }
+    await prisma.pRDTemplate.updateMany({
+      where: { userId: templateData.userId, isDefault: true },
+      data: { isDefault: false },
+    })
   }
-  
-  const newTemplate: PRDTemplate = {
-    ...templateData,
-    id: Date.now().toString(),
-    createdAt: new Date().toISOString(),
-  }
-  
-  templates.push(newTemplate)
-  await fs.writeFile(TEMPLATES_FILE, JSON.stringify(templates, null, 2))
-  
-  return newTemplate
+
+  const template = await prisma.pRDTemplate.create({
+    data: {
+      userId: templateData.userId,
+      name: templateData.name,
+      content: templateData.content,
+      isDefault: templateData.isDefault,
+    },
+  })
+
+  return mapTemplate(template)
 }
 
 export async function getTemplates(): Promise<PRDTemplate[]> {
-  await initDB()
-  try {
-    const data = await fs.readFile(TEMPLATES_FILE, 'utf-8')
-    return JSON.parse(data)
-  } catch {
-    return []
-  }
+  const templates = await prisma.pRDTemplate.findMany({ orderBy: { createdAt: 'asc' } })
+  return templates.map(mapTemplate)
 }
 
 export async function getUserTemplates(userId: string): Promise<PRDTemplate[]> {
-  const templates = await getTemplates()
-  return templates.filter(t => t.userId === userId)
+  const templates = await prisma.pRDTemplate.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'asc' },
+  })
+  return templates.map(mapTemplate)
 }
 
 export async function getTemplateById(id: string): Promise<PRDTemplate | null> {
-  const templates = await getTemplates()
-  return templates.find(t => t.id === id) || null
+  const template = await prisma.pRDTemplate.findUnique({ where: { id } })
+  return template ? mapTemplate(template) : null
 }
 
 export async function updateTemplate(id: string, updates: Partial<PRDTemplate>): Promise<PRDTemplate> {
-  await initDB()
-  const templates = await getTemplates()
-  const index = templates.findIndex(t => t.id === id)
-  
-  if (index === -1) {
-    throw new Error('Template not found')
-  }
-  
-  // If setting as default, unset other defaults for this user
+  // If setting as default, unset other defaults for this user first
   if (updates.isDefault) {
-    const userId = templates[index].userId
-    for (const template of templates) {
-      if (template.userId === userId && template.id !== id && template.isDefault) {
-        template.isDefault = false
-      }
+    const existing = await prisma.pRDTemplate.findUnique({ where: { id } })
+    if (existing) {
+      await prisma.pRDTemplate.updateMany({
+        where: { userId: existing.userId, id: { not: id }, isDefault: true },
+        data: { isDefault: false },
+      })
     }
   }
-  
-  templates[index] = { ...templates[index], ...updates }
-  await fs.writeFile(TEMPLATES_FILE, JSON.stringify(templates, null, 2))
-  
-  return templates[index]
+
+  const data: any = {}
+  if (updates.name !== undefined) data.name = updates.name
+  if (updates.content !== undefined) data.content = updates.content
+  if (updates.isDefault !== undefined) data.isDefault = updates.isDefault
+
+  const template = await prisma.pRDTemplate.update({ where: { id }, data })
+  return mapTemplate(template)
 }
 
 export async function deleteTemplate(id: string): Promise<void> {
-  await initDB()
-  const templates = await getTemplates()
-  const filtered = templates.filter(t => t.id !== id)
-  await fs.writeFile(TEMPLATES_FILE, JSON.stringify(filtered, null, 2))
+  await prisma.pRDTemplate.delete({ where: { id } })
 }
 
+// ─────────────────────────────────────────────
 // Chat operations
+// ─────────────────────────────────────────────
+
 export async function createChat(chatData: Omit<Chat, 'id' | 'createdAt' | 'updatedAt'>): Promise<Chat> {
-  await initDB()
-  
-  const chats = await getChats()
-  
-  const newChat: Chat = {
-    ...chatData,
-    id: Date.now().toString(),
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  }
-  
-  chats.push(newChat)
-  await fs.writeFile(CHATS_FILE, JSON.stringify(chats, null, 2))
-  
-  return newChat
+  const chat = await prisma.chat.create({
+    data: {
+      userId: chatData.userId,
+      type: chatData.type,
+      title: chatData.title,
+      messages: chatData.messages as any,
+      templateId: chatData.templateId,
+      prdDocument: chatData.prdDocument,
+      rcaDocument: chatData.rcaDocument,
+      rcaType: chatData.rcaType,
+    },
+  })
+
+  return mapChat(chat)
 }
 
 export async function getChats(): Promise<Chat[]> {
-  await initDB()
-  try {
-    const data = await fs.readFile(CHATS_FILE, 'utf-8')
-    return JSON.parse(data)
-  } catch {
-    return []
-  }
+  const chats = await prisma.chat.findMany({ orderBy: { updatedAt: 'desc' } })
+  return chats.map(mapChat)
 }
 
 export async function getUserChats(userId: string): Promise<Chat[]> {
-  const chats = await getChats()
-  return chats.filter(c => c.userId === userId).sort((a, b) => 
-    new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-  )
+  const chats = await prisma.chat.findMany({
+    where: { userId },
+    orderBy: { updatedAt: 'desc' },
+  })
+  return chats.map(mapChat)
 }
 
 export async function getChatById(id: string): Promise<Chat | null> {
-  const chats = await getChats()
-  return chats.find(c => c.id === id) || null
+  const chat = await prisma.chat.findUnique({ where: { id } })
+  return chat ? mapChat(chat) : null
 }
 
 export async function updateChat(id: string, updates: Partial<Chat>): Promise<Chat> {
-  await initDB()
-  const chats = await getChats()
-  const index = chats.findIndex(c => c.id === id)
-  
-  if (index === -1) {
-    throw new Error('Chat not found')
-  }
-  
-  chats[index] = { 
-    ...chats[index], 
-    ...updates,
-    updatedAt: new Date().toISOString()
-  }
-  await fs.writeFile(CHATS_FILE, JSON.stringify(chats, null, 2))
-  
-  return chats[index]
+  const data: any = {}
+  if (updates.title !== undefined) data.title = updates.title
+  if (updates.messages !== undefined) data.messages = updates.messages as any
+  if (updates.prdDocument !== undefined) data.prdDocument = updates.prdDocument
+  if (updates.rcaDocument !== undefined) data.rcaDocument = updates.rcaDocument
+  if (updates.rcaType !== undefined) data.rcaType = updates.rcaType
+  if (updates.templateId !== undefined) data.templateId = updates.templateId
+
+  const chat = await prisma.chat.update({ where: { id }, data })
+  return mapChat(chat)
 }
 
 export async function deleteChat(id: string): Promise<void> {
-  await initDB()
-  const chats = await getChats()
-  const filtered = chats.filter(c => c.id !== id)
-  await fs.writeFile(CHATS_FILE, JSON.stringify(filtered, null, 2))
+  await prisma.chat.delete({ where: { id } })
 }
-

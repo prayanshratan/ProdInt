@@ -37,3 +37,6 @@ next-env.d.ts
 /data/chats.json
 /data/templates.json
 /data/users.json
+
+# internal planning docs
+enterprise data strategy.md

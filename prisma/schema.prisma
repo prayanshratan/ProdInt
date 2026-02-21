@@ -6,11 +6,8 @@ generator client {
 }
 
 datasource db {
-  provider  = "postgresql"
-  // Use connection pooling URL for the app (Neon provides this)
-  url       = env("DATABASE_URL")
-  // Direct connection URL for Prisma migrations (bypass PgBouncer)
-  directUrl = env("DIRECT_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 model User {

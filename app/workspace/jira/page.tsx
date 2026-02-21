@@ -628,7 +628,14 @@ export default function JiraAgentPage() {
                           const aiMessageIndex = currentChat.messages
                             .slice(0, idx + 1)
                             .filter((m: any) => m.role === 'assistant').length
-                          const isUserStoryMessage = msg.role === 'assistant' && msg.content.length > 100
+                          // True only for real user story responses — not short conversational/error replies.
+                          // Requires structural markers (headings, "As a", AC) OR significant length.
+                          const isUserStoryMessage = msg.role === 'assistant' && (
+                            /^#{2,4}\s/m.test(msg.content) ||
+                            /\bAs a\b/i.test(msg.content) ||
+                            /acceptance criteria/i.test(msg.content) ||
+                            msg.content.length > 400
+                          )
 
                           return (
                             <div
@@ -713,8 +720,8 @@ export default function JiraAgentPage() {
                                   )}
                                 </div>
 
-                                {/* Action Bar - Always visible for AI messages */}
-                                {msg.role === 'assistant' && (
+                                {/* Action Bar — only shown for real user story responses, not short/error replies */}
+                                {isUserStoryMessage && (
                                   <div className="flex items-center gap-2 pt-1 border-t border-border flex-wrap">
                                     {/* Copy Button */}
                                     <button
@@ -729,47 +736,44 @@ export default function JiraAgentPage() {
                                       )}
                                     </button>
 
-                                    {/* Download + Push to Jira - Only for substantial messages */}
-                                    {isUserStoryMessage && (
-                                      <>
-                                        <div className="w-px h-4 bg-gray-200" />
-                                        <button
-                                          onClick={() => downloadMessage(msg.content, 'md', aiMessageIndex)}
-                                          className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
-                                          title="Download as Markdown"
-                                        >
-                                          <Download className="h-3.5 w-3.5" />
-                                          <span>MD</span>
-                                        </button>
-                                        <button
-                                          onClick={() => downloadMessage(msg.content, 'docx', aiMessageIndex)}
-                                          className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
-                                          title="Download as DOCX"
-                                        >
-                                          <FileText className="h-3.5 w-3.5" />
-                                          <span>DOCX</span>
-                                        </button>
-                                        <div className="w-px h-4 bg-gray-200" />
-                                        {/* Push to Jira */}
-                                        <button
-                                          onClick={() => {
-                                            if (!jiraConnected) {
-                                              toast({ title: 'Jira not connected', description: 'Go to API Keys settings to connect your Jira account.', variant: 'destructive' })
-                                              return
-                                            }
-                                            openPushToJira(msg.content)
-                                          }}
-                                          className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors ${jiraConnected
-                                              ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20'
-                                              : 'text-muted-foreground/50 cursor-not-allowed'
-                                            }`}
-                                          title={jiraConnected ? 'Push to Jira' : 'Connect Jira in API Keys settings'}
-                                        >
-                                          <Link className="h-3.5 w-3.5" />
-                                          <span>Push to Jira</span>
-                                        </button>
-                                      </>
-                                    )}
+                                    {/* Download + Push to Jira */}
+                                    <>
+                                      <div className="w-px h-4 bg-gray-200" />
+                                      <button
+                                        onClick={() => downloadMessage(msg.content, 'md', aiMessageIndex)}
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                                        title="Download as Markdown"
+                                      >
+                                        <Download className="h-3.5 w-3.5" />
+                                        <span>MD</span>
+                                      </button>
+                                      <button
+                                        onClick={() => downloadMessage(msg.content, 'docx', aiMessageIndex)}
+                                        className="flex items-center gap-1.5 px-2 py-1 text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                                        title="Download as DOCX"
+                                      >
+                                        <FileText className="h-3.5 w-3.5" />
+                                        <span>DOCX</span>
+                                      </button>
+                                      <div className="w-px h-4 bg-gray-200" />
+                                      <button
+                                        onClick={() => {
+                                          if (!jiraConnected) {
+                                            toast({ title: 'Jira not connected', description: 'Go to API Keys settings to connect your Jira account.', variant: 'destructive' })
+                                            return
+                                          }
+                                          openPushToJira(msg.content)
+                                        }}
+                                        className={`flex items-center gap-1.5 px-2 py-1 text-xs rounded-md transition-colors ${jiraConnected
+                                          ? 'text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                                          : 'text-muted-foreground/50 cursor-not-allowed'
+                                          }`}
+                                        title={jiraConnected ? 'Push to Jira' : 'Connect Jira in API Keys settings'}
+                                      >
+                                        <Link className="h-3.5 w-3.5" />
+                                        <span>Push to Jira</span>
+                                      </button>
+                                    </>
                                   </div>
                                 )}
                               </div>

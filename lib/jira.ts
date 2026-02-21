@@ -214,48 +214,67 @@ function textToAdf(text: string): object {
 export function parseUserStoriesFromMarkdown(markdown: string, featureTitle: string): ParsedStories {
     const stories: ParsedUserStory[] = []
 
-    // Split on ## headings (user story boundaries)
-    const sections = markdown.split(/^##\s+/m).filter(s => s.trim())
+    // Strategy 1: Split on ANY heading level 2-4 (handles ## and ### equally)
+    // We collect all heading positions first, then extract the slice between consecutive headings.
+    const headingRegex = /^(#{2,4})\s+(.+)$/gm
+    const headings: Array<{ index: number; level: number; title: string }> = []
+    let match: RegExpExecArray | null
 
-    for (const section of sections) {
-        const lines = section.split('\n')
-        const rawTitle = lines[0].trim()
-            .replace(/^User Story\s*\d+[:\-–]?\s*/i, '')
-            .replace(/\*+/g, '')
-            .trim()
-
-        if (!rawTitle) continue
-
-        const body = lines.slice(1).join('\n').trim()
-
-        // Extract acceptance criteria - look for "Acceptance Criteria" section
-        const acMatch = body.match(/(?:\*{0,2}Acceptance Criteria[:\*]{0,2})([\s\S]*?)(?=\n#{1,3}\s|\n\*{0,2}Acceptance|\n---|\n\*{0,2}User Story|$)/i)
-        const acceptanceCriteria: string[] = []
-
-        if (acMatch) {
-            const acBlock = acMatch[1]
-            const acLines = acBlock.split('\n')
-            for (const line of acLines) {
-                const stripped = line.trim().replace(/^[-*•\d.]+\s*/, '').trim()
-                if (stripped && stripped.length > 5) {
-                    acceptanceCriteria.push(stripped)
-                }
-            }
-        }
-
-        // Body = everything before Acceptance Criteria
-        const storyBody = acMatch
-            ? body.substring(0, body.indexOf(acMatch[0])).trim()
-            : body.trim()
-
-        stories.push({
-            title: rawTitle,
-            body: storyBody,
-            acceptanceCriteria,
-        })
+    while ((match = headingRegex.exec(markdown)) !== null) {
+        headings.push({ index: match.index, level: match[0].length - match[2].length, title: match[2].trim() })
     }
 
-    // Fallback: if no ## sections found, treat entire content as one story
+    if (headings.length >= 2) {
+        // Extract the content slice between each pair of consecutive headings
+        for (let i = 0; i < headings.length; i++) {
+            const heading = headings[i]
+            const nextIndex = headings[i + 1]?.index ?? markdown.length
+            const sectionContent = markdown.slice(heading.index + heading.title.length + heading.level + 1, nextIndex).trim()
+
+            // Skip top-level section headings that just introduce the list (e.g. "## User Stories")
+            // A real user story section will contain "As a" or "acceptance criteria" or substantial content
+            const isIntroHeading = /^(user stories|overview|introduction|background|summary)$/i.test(heading.title.replace(/\*+/g, '').trim())
+            if (isIntroHeading && !sectionContent.toLowerCase().includes('as a')) continue
+
+            const rawTitle = heading.title
+                .replace(/^User Story\s*\d+[:\-–]?\s*/i, '')
+                .replace(/^\d+\.\s*/, '')
+                .replace(/\*+/g, '')
+                .trim()
+
+            if (!rawTitle || rawTitle.length < 2) continue
+
+            const story = extractStoryFromBlock(rawTitle, sectionContent)
+            if (story) stories.push(story)
+        }
+    }
+
+    // Strategy 2: If heading split found < 2 stories, try splitting on "User Story N:" inline patterns
+    // This handles LLM outputs that use bold or numbered patterns instead of headings.
+    if (stories.length < 2) {
+        stories.length = 0 // reset
+
+        // Match patterns like: "**User Story 1: Title**", "User Story 1: Title", "1. User Story: Title"
+        const storyBlockRegex = /(?:^|\n)(?:\*{1,2})?(?:User Story\s*\d+[:\-–]\s*)([^\n*]+)(?:\*{1,2})?/gi
+        const storyMatches: Array<{ index: number; title: string }> = []
+        let m2: RegExpExecArray | null
+
+        while ((m2 = storyBlockRegex.exec(markdown)) !== null) {
+            storyMatches.push({ index: m2.index, title: m2[1].trim() })
+        }
+
+        if (storyMatches.length >= 2) {
+            for (let i = 0; i < storyMatches.length; i++) {
+                const sm = storyMatches[i]
+                const nextIdx = storyMatches[i + 1]?.index ?? markdown.length
+                const block = markdown.slice(sm.index, nextIdx).trim()
+                const story = extractStoryFromBlock(sm.title, block)
+                if (story) stories.push(story)
+            }
+        }
+    }
+
+    // Strategy 3: True fallback — treat entire content as one story
     if (stories.length === 0 && markdown.trim()) {
         stories.push({
             title: featureTitle,
@@ -265,6 +284,35 @@ export function parseUserStoriesFromMarkdown(markdown: string, featureTitle: str
     }
 
     return { featureTitle, stories }
+}
+
+/** Extract a ParsedUserStory from a heading title + its body block */
+function extractStoryFromBlock(rawTitle: string, body: string): ParsedUserStory | null {
+    if (!rawTitle || rawTitle.length < 2) return null
+
+    // Extract acceptance criteria block
+    const acMatch = body.match(
+        /(?:\*{0,2}Acceptance Criteria[:\*]{0,2})([\s\S]*?)(?=\n#{1,4}\s|\n\*{0,2}Acceptance|\n---|\n\*{0,2}User Story|$)/i
+    )
+    const acceptanceCriteria: string[] = []
+
+    if (acMatch) {
+        const acLines = acMatch[1].split('\n')
+        for (const line of acLines) {
+            // Strip leading -, *, •, numbers, bold markers
+            const stripped = line.trim().replace(/^\*{1,2}|\*{1,2}$/g, '').replace(/^[-*•\d.]+\s*/, '').trim()
+            if (stripped && stripped.length > 5) {
+                acceptanceCriteria.push(stripped)
+            }
+        }
+    }
+
+    // Story body = content before the Acceptance Criteria section
+    const storyBody = acMatch
+        ? body.substring(0, body.indexOf(acMatch[0])).trim()
+        : body.trim()
+
+    return { title: rawTitle, body: storyBody, acceptanceCriteria }
 }
 
 /**

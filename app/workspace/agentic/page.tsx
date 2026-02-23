@@ -878,9 +878,14 @@ export default function AgenticPage() {
                                     /* History view */
                                     : selectedHistoryChat ? (() => {
                                         const msgs = selectedHistoryChat.messages || []
-                                        const jiraMsg = msgs.find((m: any) => m.jiraResult)
+                                        // jiraMsg: new sessions have .jiraResult field; old ones just have text starting with "Jira tickets created"
+                                        const jiraMsg = msgs.find((m: any) => m.jiraResult || m.content?.startsWith('Jira tickets created'))
                                         const storiesMsg = msgs.filter((m: any) =>
-                                            m.role === 'assistant' && !m.jiraResult && m.content !== selectedHistoryChat.prdDocument
+                                            m.role === 'assistant' &&
+                                            !m.jiraResult &&
+                                            !m.content?.startsWith('Jira tickets created') &&
+                                            !m.content?.startsWith('[Approved') &&
+                                            m.content !== selectedHistoryChat.prdDocument
                                         ).pop()
                                         return (
                                             <>
@@ -905,7 +910,7 @@ export default function AgenticPage() {
                                                     />
                                                     <HistorySection
                                                         title={`Jira Tickets${jiraMsg?.jiraResult?.tasks?.length ? ` (${jiraMsg.jiraResult.tasks.length + 1} tickets)` : ''}`}
-                                                        content={undefined}
+                                                        content={!jiraMsg?.jiraResult ? jiraMsg?.content : undefined}
                                                         filename={`${selectedHistoryChat.title}-Jira`}
                                                         jiraResult={jiraMsg?.jiraResult}
                                                         defaultExpanded={!!jiraMsg}

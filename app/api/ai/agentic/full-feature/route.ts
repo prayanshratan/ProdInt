@@ -1,6 +1,6 @@
 import { getSession } from '@/lib/auth'
 import { getUserById, createChat, updateChat } from '@/lib/db'
-import { generatePRD, generateUserStories } from '@/lib/gemini'
+import { generatePRD, generateUserStories, getGeminiClient } from '@/lib/gemini'
 import { createJiraTickets } from '@/lib/jira'
 
 export async function POST(request: Request) {
@@ -36,13 +36,31 @@ export async function POST(request: Request) {
                     return
                 }
 
+                // ── Generate a concise title with LLM ─────────────────
+                let featureTitle = feature.slice(0, 60)
+                try {
+                    const genAI = getGeminiClient(user.apiKey)
+                    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-lite' })
+                    const titleRes = await model.generateContent(
+                        `In 4-6 words maximum, write a concise Jira epic/story title for this feature request. Return ONLY the title — no quotes, no punctuation at the end, no explanation.\n\nFeature:\n${feature}`
+                    )
+                    const generated = titleRes.response.text().trim().replace(/^["']|["']$/g, '')
+                    if (generated && generated.length < 80) featureTitle = generated
+                } catch { /* fall back to truncated feature string */ }
+
+                // Send the resolved title to the client so the sidebar can update
+                send({ type: 'title', title: featureTitle })
+
                 // ── Create a chat to persist the session ──────────────
                 const chat = await createChat({
                     userId: session.userId,
                     type: 'jira',
-                    title: feature.slice(0, 60),
+                    title: featureTitle,
                     messages: [],
+                    rcaType: 'agentic',   // marker so we can filter agentic sessions
                 })
+
+                send({ type: 'chat_created', chatId: chat.id })
 
                 // ── Step 1: Generate PRD ──────────────────────────────
                 send({ type: 'step', step: 1, status: 'running', label: 'Generating PRD...' })
@@ -74,7 +92,11 @@ export async function POST(request: Request) {
                 await updateChat(chat.id, {
                     messages: [
                         { role: 'user', content: feature, timestamp: new Date().toISOString() },
-                        { role: 'assistant', content: `## PRD\n\n${prdContent}\n\n---\n\n## User Stories\n\n${storiesContent}`, timestamp: new Date().toISOString() }
+                        {
+                            role: 'assistant',
+                            content: `## PRD\n\n${prdContent}\n\n---\n\n## User Stories\n\n${storiesContent}`,
+                            timestamp: new Date().toISOString(),
+                        },
                     ],
                     prdDocument: prdContent,
                 })
@@ -89,7 +111,7 @@ export async function POST(request: Request) {
                         const jiraResult = await createJiraTickets(
                             jiraConfig,
                             jiraProjectKey,
-                            feature,
+                            featureTitle,
                             storiesContent
                         )
 
@@ -97,7 +119,7 @@ export async function POST(request: Request) {
                             type: 'step',
                             step: 3,
                             status: 'done',
-                            label: `Created ${jiraResult.tasks?.length ?? 0} Jira Tickets`,
+                            label: `Created ${(jiraResult.tasks?.length ?? 0) + 1} Jira Tickets`,
                             jiraResult,
                         })
                     } catch (jiraError: any) {
@@ -118,9 +140,7 @@ export async function POST(request: Request) {
 
             } catch (err: any) {
                 console.error('Agentic pipeline error:', err)
-                try {
-                    encoder.encode(`data: ${JSON.stringify({ type: 'error', message: err.message })}\n\n`)
-                } catch { }
+                send({ type: 'error', message: err.message })
             } finally {
                 controller.close()
             }

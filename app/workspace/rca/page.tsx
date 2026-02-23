@@ -252,7 +252,7 @@ export default function RCAAgentPage() {
     if (chatId && chats.length > 0) {
       const chat = chats.find(c => c.id === chatId)
       if (chat) {
-        setCurrentChat(chat)
+        selectChat(chatId)
         router.replace('/workspace/rca', { scroll: false })
       }
     }
@@ -319,6 +319,15 @@ export default function RCAAgentPage() {
     } catch (error) {
       console.error('Failed to fetch chats:', error)
     }
+  }
+
+  const selectChat = async (chatId: string) => {
+    const cached = chats.find((c: any) => c.id === chatId)
+    if (cached && 'messages' in cached) { setCurrentChat(cached); return }
+    try {
+      const res = await fetch(`/api/chats/${chatId}`)
+      if (res.ok) { const { chat } = await res.json(); setCurrentChat(chat) }
+    } catch { }
   }
 
   const resetForm = () => {
@@ -563,7 +572,7 @@ export default function RCAAgentPage() {
                     }`}
                 >
                   <button
-                    onClick={() => setCurrentChat(chat)}
+                    onClick={() => selectChat(chat.id)}
                     className="w-full text-left p-3"
                   >
                     <p className="font-medium truncate text-sm pr-8">{chat.title}</p>

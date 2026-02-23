@@ -592,6 +592,15 @@ export default function AgenticPage() {
         } catch { }
     }
 
+    const selectHistoryChat = async (chatId: string) => {
+        const cached = history.find(c => c.id === chatId)
+        if (cached && 'messages' in cached) { setSelectedHistoryChat(cached); setStage('idle'); return }
+        try {
+            const res = await fetch(`/api/chats/${chatId}`)
+            if (res.ok) { const { chat } = await res.json(); setSelectedHistoryChat(chat); setStage('idle') }
+        } catch { }
+    }
+
     // ── Stage 1: Start — Generate PRD ──────────────────────────────
     const handleStart = async (feature: string) => {
         setSelectedHistoryChat(null)
@@ -776,7 +785,7 @@ export default function AgenticPage() {
                                         ? 'bg-primary text-white shadow-sm'
                                         : 'hover:bg-muted/50 border border-border'}`}>
                                     <button
-                                        onClick={() => { setSelectedHistoryChat(chat); setStage('idle') }}
+                                        onClick={() => selectHistoryChat(chat.id)}
                                         className="w-full text-left p-3"
                                     >
                                         <p className="font-medium truncate text-sm pr-8">{chat.title}</p>

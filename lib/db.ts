@@ -58,6 +58,23 @@ export interface Chat {
   updatedAt: string
 }
 
+/**
+ * Lightweight metadata — only fields needed for sidebar rendering.
+ * Does NOT include messages, prdDocument, or rcaDocument.
+ * Use getUserChatsMetadata() for sidebar loads (fast).
+ * Use getChatById() when full content is needed (on-demand).
+ */
+export interface ChatMeta {
+  id: string
+  userId: string
+  type: 'prd' | 'jira' | 'rca'
+  rcaType?: string
+  title: string
+  templateId?: string
+  createdAt: string
+  updatedAt: string
+}
+
 // ─────────────────────────────────────────────
 // Mappers: Prisma types → our TypeScript interfaces
 // ─────────────────────────────────────────────
@@ -268,6 +285,42 @@ export async function getUserChats(userId: string): Promise<Chat[]> {
     orderBy: { updatedAt: 'desc' },
   })
   return chats.map(mapChat)
+}
+
+/**
+ * Fast metadata-only fetch for sidebar rendering.
+ * Excludes messages, prdDocument, rcaDocument — payload is ~100x smaller.
+ * Always use this for initial page loads; lazy-load full chat on user selection.
+ */
+export async function getUserChatsMetadata(userId: string): Promise<ChatMeta[]> {
+  const chats = await prisma.chat.findMany({
+    where: { userId },
+    orderBy: { updatedAt: 'desc' },
+    select: {
+      id: true,
+      userId: true,
+      type: true,
+      rcaType: true,
+      title: true,
+      templateId: true,
+      createdAt: true,
+      updatedAt: true,
+      // messages, prdDocument, rcaDocument intentionally excluded
+    },
+  })
+  return chats.map((c: {
+    id: string; userId: string; type: string; rcaType: string | null;
+    title: string; templateId: string | null; createdAt: Date; updatedAt: Date
+  }) => ({
+    id: c.id,
+    userId: c.userId,
+    type: c.type as ChatMeta['type'],
+    rcaType: c.rcaType ?? undefined,
+    title: c.title,
+    templateId: c.templateId ?? undefined,
+    createdAt: c.createdAt.toISOString(),
+    updatedAt: c.updatedAt.toISOString(),
+  }))
 }
 
 export async function getChatById(id: string): Promise<Chat | null> {

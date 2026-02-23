@@ -6,8 +6,12 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  // To use Neon's PgBouncer pooler (recommended for production):
+  // 1. Set DATABASE_URL to the "Pooled connection" string from Neon dashboard
+  // 2. Add DIRECT_DATABASE_URL = the "Direct connection" string (for migrations)
+  // 3. Uncomment: directUrl = env("DIRECT_DATABASE_URL")
 }
 
 model User {
@@ -60,4 +64,5 @@ model Chat {
 
   @@index([userId])
   @@index([userId, type])
+  @@index([userId, updatedAt])   // speeds up ORDER BY updatedAt DESC per user
 }

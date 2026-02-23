@@ -402,15 +402,7 @@ export default function AgenticPage() {
 
             {/* ── Left sidebar: History ──────────────────── */}
             <aside className="hidden lg:flex flex-col w-56 flex-shrink-0 space-y-2">
-                <button
-                    onClick={startNew}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                    <Plus className="h-4 w-4" />
-                    New Feature
-                </button>
-
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 pt-2">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-1 pt-1">
                     History
                 </div>
 
@@ -434,16 +426,25 @@ export default function AgenticPage() {
             <div className="flex-1 min-w-0 flex flex-col gap-6 overflow-y-auto pb-6">
 
                 {/* Header */}
-                <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-primary flex-shrink-0">
-                        <Zap className="h-5 w-5 text-white" />
+                <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-500 to-primary flex-shrink-0">
+                            <Zap className="h-5 w-5 text-white" />
+                        </div>
+                        <div>
+                            <h1 className="text-xl font-bold tracking-tight">Agentic Feature Builder</h1>
+                            <p className="text-sm text-muted-foreground">
+                                Describe a feature → PRD + user stories + Jira tickets, all automated.
+                            </p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 className="text-xl font-bold tracking-tight">Agentic Feature Builder</h1>
-                        <p className="text-sm text-muted-foreground">
-                            Describe a feature → PRD + user stories + Jira tickets, all automated.
-                        </p>
-                    </div>
+                    <button
+                        onClick={startNew}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary/90 transition-colors flex-shrink-0"
+                    >
+                        <Plus className="h-4 w-4" />
+                        New Feature
+                    </button>
                 </div>
 
                 {/* Jira banner */}

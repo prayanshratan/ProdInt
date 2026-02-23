@@ -57,7 +57,7 @@ export async function POST(request: Request) {
                     type: 'jira',
                     title: featureTitle,
                     messages: [],
-                    rcaType: 'agentic',   // marker so we can filter agentic sessions
+                    rcaType: 'agentic' as any,   // marker so we can filter agentic sessions
                 })
 
                 send({ type: 'chat_created', chatId: chat.id })

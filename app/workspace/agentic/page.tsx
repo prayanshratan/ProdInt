@@ -6,6 +6,7 @@ import {
     Zap, CheckCircle2, Loader2, AlertCircle, Plus, Trash2,
     CheckCircle, ExternalLink, Link as LinkIcon, Send,
     Pencil, Eye, ArrowRight, RotateCcw, ChevronRight,
+    Copy, Check, Download,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -72,6 +73,7 @@ function ContentPanel({
     chatLoading,
     stageLabel,
     editPlaceholder,
+    filename,
 }: {
     content: string
     onContentChange: (v: string) => void
@@ -80,10 +82,53 @@ function ContentPanel({
     chatLoading: boolean
     stageLabel: string
     editPlaceholder?: string
+    filename: string
 }) {
     const [editMode, setEditMode] = useState(false)
     const [chatInput, setChatInput] = useState('')
+    const [copied, setCopied] = useState(false)
+    const [downloading, setDownloading] = useState(false)
     const chatEndRef = useRef<HTMLDivElement>(null)
+    const { toast } = useToast()
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(content)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2000)
+        toast({ title: 'Copied to clipboard' })
+    }
+
+    const handleDownload = async (format: 'md' | 'docx') => {
+        const safe = filename.replace(/[^a-z0-9\-_]/gi, '-').toLowerCase()
+        if (format === 'md') {
+            const blob = new Blob([content], { type: 'text/markdown' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a'); a.href = url; a.download = `${safe}.md`
+            document.body.appendChild(a); a.click(); document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+            toast({ title: 'Downloaded', description: `${safe}.md` })
+        } else {
+            setDownloading(true)
+            try {
+                const res = await fetch('/api/convert/markdown-to-docx', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ markdown: content, title: filename }),
+                })
+                if (res.ok) {
+                    const blob = await res.blob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a'); a.href = url; a.download = `${safe}.docx`
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+                    URL.revokeObjectURL(url)
+                    toast({ title: 'Downloaded', description: `${safe}.docx` })
+                } else {
+                    toast({ title: 'DOCX conversion failed', variant: 'destructive' })
+                }
+            } catch { toast({ title: 'Download failed', variant: 'destructive' }) }
+            finally { setDownloading(false) }
+        }
+    }
 
     useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [chatMessages])
 
@@ -99,12 +144,29 @@ function ContentPanel({
             {/* Toolbar */}
             <div className="flex items-center justify-between px-6 py-3 border-b bg-muted/20">
                 <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">{stageLabel}</span>
-                <button
-                    onClick={() => setEditMode(e => !e)}
-                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/60 transition-colors"
-                >
-                    {editMode ? <><Eye className="h-3.5 w-3.5" /> Preview</> : <><Pencil className="h-3.5 w-3.5" /> Edit</>}
-                </button>
+                <div className="flex items-center gap-1">
+                    {/* Copy */}
+                    <button onClick={handleCopy} title="Copy to clipboard"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
+                        {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                    </button>
+                    {/* Download MD */}
+                    <button onClick={() => handleDownload('md')} title="Download Markdown"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
+                        <Download className="h-3.5 w-3.5" />.md
+                    </button>
+                    {/* Download DOCX */}
+                    <button onClick={() => handleDownload('docx')} disabled={downloading} title="Download DOCX"
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/60 transition-colors disabled:opacity-50">
+                        {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}DOCX
+                    </button>
+                    <div className="w-px h-4 bg-border mx-1" />
+                    {/* Edit toggle */}
+                    <button onClick={() => setEditMode(e => !e)}
+                        className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md hover:bg-muted/60 transition-colors">
+                        {editMode ? <><Eye className="h-3.5 w-3.5" /> Preview</> : <><Pencil className="h-3.5 w-3.5" /> Edit</>}
+                    </button>
+                </div>
             </div>
 
             {/* Content area */}
@@ -606,6 +668,7 @@ export default function AgenticPage() {
                                     chatLoading={chatLoading}
                                     stageLabel="Step 1 of 3 — Review your PRD. Edit directly or ask for changes below."
                                     editPlaceholder="Edit your PRD directly in markdown..."
+                                    filename={`${featureTitle}-PRD`}
                                 />
                                 <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/20">
                                     <Button variant="ghost" size="sm" onClick={() => handleStart(featureTitle)} className="gap-1.5">
@@ -641,6 +704,7 @@ export default function AgenticPage() {
                                         chatLoading={chatLoading}
                                         stageLabel="Step 2 of 3 — Review user stories. Edit directly or ask for changes below."
                                         editPlaceholder="Edit your user stories directly in markdown..."
+                                        filename={`${featureTitle}-User-Stories`}
                                     />
                                     <div className="flex items-center justify-between px-6 py-4 border-t bg-muted/20">
                                         <Button variant="ghost" size="sm" onClick={handleApprovePrd} className="gap-1.5">

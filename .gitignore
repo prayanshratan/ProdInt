@@ -36,5 +36,3 @@ next-env.d.ts
 # data files - all data now lives in Neon PostgreSQL
 /data/
 
-# internal planning docs
-enterprise data strategy.md

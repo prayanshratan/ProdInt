@@ -6,7 +6,7 @@ import {
     Zap, CheckCircle2, Loader2, AlertCircle, Plus, Trash2,
     CheckCircle, ExternalLink, Link as LinkIcon, Send,
     Pencil, Eye, ArrowRight, RotateCcw, ChevronRight,
-    Copy, Check, Download,
+    Copy, Check, Download, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -359,6 +359,129 @@ function JiraResults({ result }: { result: any }) {
                             </a>
                         ))}
                     </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
+// ── History Section (expandable with download actions) ───────────
+
+function HistorySection({
+    title, content, filename, jiraResult, defaultExpanded = false,
+}: {
+    title: string
+    content?: string
+    filename: string
+    jiraResult?: any
+    defaultExpanded?: boolean
+}) {
+    const [expanded, setExpanded] = useState(defaultExpanded)
+    const [copied, setCopied] = useState(false)
+    const [downloading, setDownloading] = useState(false)
+    const { toast } = useToast()
+
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!content) return
+        navigator.clipboard.writeText(content)
+        setCopied(true); setTimeout(() => setCopied(false), 2000)
+        toast({ title: 'Copied to clipboard' })
+    }
+
+    const handleDownload = async (format: 'md' | 'docx', e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!content) return
+        const safe = filename.replace(/[^a-z0-9\-_]/gi, '-').toLowerCase()
+        if (format === 'md') {
+            const blob = new Blob([content], { type: 'text/markdown' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a'); a.href = url; a.download = `${safe}.md`
+            document.body.appendChild(a); a.click(); document.body.removeChild(a)
+            URL.revokeObjectURL(url)
+            toast({ title: 'Downloaded', description: `${safe}.md` })
+        } else {
+            setDownloading(true)
+            try {
+                const res = await fetch('/api/convert/markdown-to-docx', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ markdown: content, title: filename }),
+                })
+                if (res.ok) {
+                    const blob = await res.blob()
+                    const url = URL.createObjectURL(blob)
+                    const a = document.createElement('a'); a.href = url; a.download = `${safe}.docx`
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a)
+                    URL.revokeObjectURL(url)
+                    toast({ title: 'Downloaded', description: `${safe}.docx` })
+                } else { toast({ title: 'DOCX conversion failed', variant: 'destructive' }) }
+            } catch { toast({ title: 'Download failed', variant: 'destructive' }) }
+            finally { setDownloading(false) }
+        }
+    }
+
+    const hasContent = Boolean(content || jiraResult)
+    if (!hasContent) return null
+
+    return (
+        <div className="border border-border rounded-xl overflow-hidden">
+            {/* Header row */}
+            <button
+                onClick={() => setExpanded(e => !e)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-muted/30 hover:bg-muted/50 transition-colors"
+            >
+                <div className="flex items-center gap-2">
+                    {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                    <span className="text-sm font-semibold">{title}</span>
+                </div>
+                {/* Action buttons — stop propagation so they don't toggle expand */}
+                {content && (
+                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                        <button onClick={handleCopy} title="Copy"
+                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
+                            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                        </button>
+                        <button onClick={(e) => handleDownload('md', e)} title="Download .md"
+                            className="flex items-center gap-0.5 px-1.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
+                            <Download className="h-3.5 w-3.5" />.md
+                        </button>
+                        <button onClick={(e) => handleDownload('docx', e)} disabled={downloading} title="Download DOCX"
+                            className="flex items-center gap-0.5 px-1.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50">
+                            {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}DOCX
+                        </button>
+                    </div>
+                )}
+            </button>
+
+            {/* Body */}
+            {expanded && (
+                <div className="p-5 border-t border-border/50">
+                    {content && !jiraResult && <MarkdownRenderer content={content} />}
+                    {jiraResult && (
+                        <div className="space-y-3">
+                            {jiraResult.storyUrl && (
+                                <div className="p-3 rounded-lg border border-blue-500/30 bg-blue-500/5">
+                                    <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wide">Parent Story</p>
+                                    <a href={jiraResult.storyUrl} target="_blank" rel="noopener noreferrer"
+                                        className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline">
+                                        <ExternalLink className="h-4 w-4" />{jiraResult.storyKey}
+                                    </a>
+                                </div>
+                            )}
+                            {jiraResult.tasks?.length > 0 && (
+                                <div className="space-y-1.5 pl-4 border-l-2 border-primary/20">
+                                    {jiraResult.tasks.map((t: any) => (
+                                        <a key={t.key} href={t.url} target="_blank" rel="noopener noreferrer"
+                                            className="flex items-start gap-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 p-2 rounded-lg transition-colors">
+                                            <ExternalLink className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-primary" />
+                                            <span><span className="font-medium text-foreground">{t.key}</span> — {t.title}</span>
+                                        </a>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -753,30 +876,44 @@ export default function AgenticPage() {
                                 )
 
                                     /* History view */
-                                    : selectedHistoryChat ? (
-                                        <>
-                                            <CardHeader className="border-b bg-muted/30">
-                                                <CardTitle className="text-xl">{selectedHistoryChat.title}</CardTitle>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {new Date(selectedHistoryChat.updatedAt).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
-                                                </p>
-                                            </CardHeader>
-                                            <CardContent className="p-6 space-y-6 h-[600px] overflow-y-auto custom-scrollbar">
-                                                {selectedHistoryChat.prdDocument && (
-                                                    <div>
-                                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">PRD</p>
-                                                        <MarkdownRenderer content={selectedHistoryChat.prdDocument} />
-                                                    </div>
-                                                )}
-                                                {selectedHistoryChat.messages?.filter((m: any) => m.role === 'assistant' && !m.content.startsWith('Jira tickets created')).slice(-1)[0]?.content && (
-                                                    <div className="border-t pt-6">
-                                                        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">User Stories</p>
-                                                        <MarkdownRenderer content={selectedHistoryChat.messages.filter((m: any) => m.role === 'assistant').slice(-1)[0].content} />
-                                                    </div>
-                                                )}
-                                            </CardContent>
-                                        </>
-                                    )
+                                    : selectedHistoryChat ? (() => {
+                                        const msgs = selectedHistoryChat.messages || []
+                                        const jiraMsg = msgs.find((m: any) => m.jiraResult)
+                                        const storiesMsg = msgs.filter((m: any) =>
+                                            m.role === 'assistant' && !m.jiraResult && m.content !== selectedHistoryChat.prdDocument
+                                        ).pop()
+                                        return (
+                                            <>
+                                                <CardHeader className="border-b bg-muted/30">
+                                                    <CardTitle className="text-xl">{selectedHistoryChat.title}</CardTitle>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {new Date(selectedHistoryChat.updatedAt).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
+                                                    </p>
+                                                </CardHeader>
+                                                <CardContent className="p-5 space-y-3 h-[600px] overflow-y-auto custom-scrollbar">
+                                                    <HistorySection
+                                                        title="PRD"
+                                                        content={selectedHistoryChat.prdDocument}
+                                                        filename={`${selectedHistoryChat.title}-PRD`}
+                                                        defaultExpanded={true}
+                                                    />
+                                                    <HistorySection
+                                                        title="User Stories"
+                                                        content={storiesMsg?.content}
+                                                        filename={`${selectedHistoryChat.title}-User-Stories`}
+                                                        defaultExpanded={false}
+                                                    />
+                                                    <HistorySection
+                                                        title={`Jira Tickets${jiraMsg?.jiraResult?.tasks?.length ? ` (${jiraMsg.jiraResult.tasks.length + 1} tickets)` : ''}`}
+                                                        content={undefined}
+                                                        filename={`${selectedHistoryChat.title}-Jira`}
+                                                        jiraResult={jiraMsg?.jiraResult}
+                                                        defaultExpanded={!!jiraMsg}
+                                                    />
+                                                </CardContent>
+                                            </>
+                                        )
+                                    })()
 
                                         /* Welcome / idle */
                                         : (

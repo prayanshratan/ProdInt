@@ -34,11 +34,12 @@ export async function POST(request: Request) {
             {
                 role: 'assistant',
                 content: `Jira tickets created: ${jiraResult.storyKey} + ${jiraResult.tasks?.length ?? 0} sub-tasks`,
+                jiraResult,          // ← store full result for history view
                 timestamp: new Date().toISOString(),
             },
         ]
 
-        await updateChat(chatId, { messages: newMessages })
+        await updateChat(chatId, { messages: newMessages as any[] })
 
         return NextResponse.json({ jiraResult })
     } catch (err: any) {

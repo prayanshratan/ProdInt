@@ -368,18 +368,23 @@ function JiraResults({ result }: { result: any }) {
 // ── History Section (expandable with download actions) ───────────
 
 function HistorySection({
-    title, content, filename, jiraResult, defaultExpanded = false,
+    title, content, filename, jiraResult, defaultExpanded = false, onFetchLinks,
 }: {
     title: string
     content?: string
     filename: string
     jiraResult?: any
     defaultExpanded?: boolean
+    onFetchLinks?: () => Promise<any>
 }) {
     const [expanded, setExpanded] = useState(defaultExpanded)
     const [copied, setCopied] = useState(false)
     const [downloading, setDownloading] = useState(false)
+    const [loadedJiraResult, setLoadedJiraResult] = useState<any>(null)
+    const [fetchingLinks, setFetchingLinks] = useState(false)
     const { toast } = useToast()
+
+    const effectiveJiraResult = jiraResult || loadedJiraResult
 
     const handleCopy = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -421,7 +426,18 @@ function HistorySection({
         }
     }
 
-    const hasContent = Boolean(content || jiraResult)
+    const handleFetchLinks = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (!onFetchLinks) return
+        setFetchingLinks(true)
+        try {
+            const result = await onFetchLinks()
+            if (result) setLoadedJiraResult(result)
+            else toast({ title: 'Could not load ticket links', variant: 'destructive' })
+        } finally { setFetchingLinks(false) }
+    }
+
+    const hasContent = Boolean(content || effectiveJiraResult || onFetchLinks)
     if (!hasContent) return null
 
     return (
@@ -435,43 +451,62 @@ function HistorySection({
                     {expanded ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
                     <span className="text-sm font-semibold">{title}</span>
                 </div>
-                {/* Action buttons — stop propagation so they don't toggle expand */}
-                {content && (
-                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                        <button onClick={handleCopy} title="Copy"
-                            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
-                            {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
+                    {/* Copy / download for markdown content */}
+                    {content && !effectiveJiraResult && (
+                        <>
+                            <button onClick={handleCopy} title="Copy"
+                                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
+                                {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
+                            </button>
+                            <button onClick={(e) => handleDownload('md', e)} title="Download .md"
+                                className="flex items-center gap-0.5 px-1.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
+                                <Download className="h-3.5 w-3.5" />.md
+                            </button>
+                            <button onClick={(e) => handleDownload('docx', e)} disabled={downloading} title="Download DOCX"
+                                className="flex items-center gap-0.5 px-1.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50">
+                                {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}DOCX
+                            </button>
+                        </>
+                    )}
+                    {/* Fetch links button for old sessions */}
+                    {onFetchLinks && !effectiveJiraResult && (
+                        <button onClick={handleFetchLinks} disabled={fetchingLinks}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium text-primary hover:bg-primary/10 transition-colors disabled:opacity-50">
+                            {fetchingLinks
+                                ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading...</>
+                                : <><ExternalLink className="h-3.5 w-3.5" /> Load ticket links</>}
                         </button>
-                        <button onClick={(e) => handleDownload('md', e)} title="Download .md"
-                            className="flex items-center gap-0.5 px-1.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors">
-                            <Download className="h-3.5 w-3.5" />.md
-                        </button>
-                        <button onClick={(e) => handleDownload('docx', e)} disabled={downloading} title="Download DOCX"
-                            className="flex items-center gap-0.5 px-1.5 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors disabled:opacity-50">
-                            {downloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}DOCX
-                        </button>
-                    </div>
-                )}
+                    )}
+                </div>
             </button>
 
             {/* Body */}
             {expanded && (
                 <div className="p-5 border-t border-border/50">
-                    {content && !jiraResult && <MarkdownRenderer content={content} />}
-                    {jiraResult && (
+                    {/* Markdown content (PRD or stories) */}
+                    {content && !effectiveJiraResult && <MarkdownRenderer content={content} />}
+
+                    {/* Old session fallback text before links are loaded */}
+                    {content && effectiveJiraResult === null && !effectiveJiraResult && onFetchLinks && (
+                        <p className="text-sm text-muted-foreground">{content}</p>
+                    )}
+
+                    {/* Jira ticket tree */}
+                    {effectiveJiraResult && (
                         <div className="space-y-3">
-                            {jiraResult.storyUrl && (
+                            {effectiveJiraResult.storyUrl && (
                                 <div className="p-3 rounded-lg border border-blue-500/30 bg-blue-500/5">
                                     <p className="text-xs text-muted-foreground mb-1 font-medium uppercase tracking-wide">Parent Story</p>
-                                    <a href={jiraResult.storyUrl} target="_blank" rel="noopener noreferrer"
+                                    <a href={effectiveJiraResult.storyUrl} target="_blank" rel="noopener noreferrer"
                                         className="flex items-center gap-2 text-sm font-semibold text-blue-600 hover:underline">
-                                        <ExternalLink className="h-4 w-4" />{jiraResult.storyKey}
+                                        <ExternalLink className="h-4 w-4" />{effectiveJiraResult.storyKey}
                                     </a>
                                 </div>
                             )}
-                            {jiraResult.tasks?.length > 0 && (
+                            {effectiveJiraResult.tasks?.length > 0 && (
                                 <div className="space-y-1.5 pl-4 border-l-2 border-primary/20">
-                                    {jiraResult.tasks.map((t: any) => (
+                                    {effectiveJiraResult.tasks.map((t: any) => (
                                         <a key={t.key} href={t.url} target="_blank" rel="noopener noreferrer"
                                             className="flex items-start gap-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/40 p-2 rounded-lg transition-colors">
                                             <ExternalLink className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-primary" />
@@ -481,6 +516,11 @@ function HistorySection({
                                 </div>
                             )}
                         </div>
+                    )}
+
+                    {/* No-links placeholder (old session, links not loaded yet) */}
+                    {!effectiveJiraResult && onFetchLinks && !fetchingLinks && (
+                        <p className="text-sm text-muted-foreground">Click "Load ticket links" above to fetch ticket URLs from Jira.</p>
                     )}
                 </div>
             )}
@@ -910,10 +950,23 @@ export default function AgenticPage() {
                                                     />
                                                     <HistorySection
                                                         title={`Jira Tickets${jiraMsg?.jiraResult?.tasks?.length ? ` (${jiraMsg.jiraResult.tasks.length + 1} tickets)` : ''}`}
-                                                        content={!jiraMsg?.jiraResult ? jiraMsg?.content : undefined}
+                                                        content={undefined}
                                                         filename={`${selectedHistoryChat.title}-Jira`}
                                                         jiraResult={jiraMsg?.jiraResult}
                                                         defaultExpanded={!!jiraMsg}
+                                                        onFetchLinks={jiraMsg && !jiraMsg.jiraResult ? async () => {
+                                                            const storyKey = jiraMsg.content?.match(/([A-Z]+-\d+)/)?.[1]
+                                                            if (!storyKey) return null
+                                                            try {
+                                                                const res = await fetch('/api/ai/agentic/fetch-jira-result', {
+                                                                    method: 'POST',
+                                                                    headers: { 'Content-Type': 'application/json' },
+                                                                    body: JSON.stringify({ chatId: selectedHistoryChat.id, storyKey }),
+                                                                })
+                                                                if (res.ok) { const d = await res.json(); return d.jiraResult }
+                                                            } catch { }
+                                                            return null
+                                                        } : undefined}
                                                     />
                                                 </CardContent>
                                             </>
